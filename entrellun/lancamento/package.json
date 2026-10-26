@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "trilha": "node tools/gerar-trilha.cjs",
+    "trilha": "bash tools/recortar-trilha.sh",
     "check": "hyperframes check",
     "snapshot": "hyperframes snapshot",
     "render": "hyperframes render -f 60 -q delivery -o renders/entrellun-lancamento-9x16-60fps.mp4"

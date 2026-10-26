@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "audio": "assets/audio/trilha-entrellun-luminous-chord.wav",
+  "beats": [
+    {
+      "time": 0.035,
+      "strength": 0.383
+    },
+    {
+      "time": 0.545,
+      "strength": 0.416
+    },
+    {
+      "time": 1.045,
+      "strength": 0.548
+    },
+    {
+      "time": 1.545,
+      "strength": 0.826
+    },
+    {
+      "time": 2.045,
+      "strength": 0.616
+    },
+    {
+      "time": 2.555,
+      "strength": 0.5
+    },
+    {
+      "time": 3.045,
+      "strength": 0.366
+    },
+    {
+      "time": 3.545,
+      "strength": 0.299
+    },
+    {
+      "time": 4.045,
+      "strength": 0.258
+    },
+    {
+      "time": 4.545,
+      "strength": 0.263
+    },
+    {
+      "time": 5.045,
+      "strength": 0.263
+    },
+    {
+      "time": 5.545,
+      "strength": 0.455
+    },
+    {
+      "time": 6.035,
+      "strength": 0.283
+    },
+    {
+      "time": 6.535,
+      "strength": 0.259
+    },
+    {
+      "time": 7.045,
+      "strength": 0.217
+    },
+    {
+      "time": 7.535,
+      "strength": 0.415
+    },
+    {
+      "time": 8.035,
+      "strength": 0.199
+    },
+    {
+      "time": 8.545,
+      "strength": 0.206
+    },
+    {
+      "time": 9.035,
+      "strength": 0.288
+    },
+    {
+      "time": 9.535,
+      "strength": 0.799
+    },
+    {
+      "time": 10.035,
+      "strength": 0.661
+    },
+    {
+      "time": 10.535,
+      "strength": 0.525
+    },
+    {
+      "time": 11.035,
+      "strength": 0.877
+    },
+    {
+      "time": 11.535,
+      "strength": 0.519
+    },
+    {
+      "time": 12.035,
+      "strength": 0.495
+    },
+    {
+      "time": 12.535,
+      "strength": 0.945
+    },
+    {
+      "time": 13.035,
+      "strength": 0.983
+    },
+    {
+      "time": 13.545,
+      "strength": 1
+    },
+    {
+      "time": 14.035,
+      "strength": 0.906
+    },
+    {
+      "time": 14.525,
+      "strength": 0.766
+    },
+    {
+      "time": 15.035,
+      "strength": 0.73
+    },
+    {
+      "time": 15.535,
+      "strength": 0.564
+    },
+    {
+      "time": 16.035,
+      "strength": 0.568
+    },
+    {
+      "time": 16.535,
+      "strength": 0.509
+    },
+    {
+      "time": 17.035,
+      "strength": 0.365
+    },
+    {
+      "time": 17.545,
+      "strength": 0.289
+    }
+  ]
+}

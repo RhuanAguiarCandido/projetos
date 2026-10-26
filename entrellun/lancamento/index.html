@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Entrellun — Gente e Gestão · Lançamento</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script src="assets/data/simbolo.js"></script>
+    <style>
+      @font-face {
+        font-family: "Plus Jakarta Sans";
+        src: url("assets/fonts/PlusJakartaSans-latin-var.woff2") format("woff2");
+        font-weight: 200 800;
+        font-display: block;
+      }
+      :root {
+        --azul-profundo: #061a4f;
+        --branco-frio: #f4f7fc;
+        --azul-eletrico: #1557ff;
+        --ciano: #37d5f2;
+        --coral: #ff7855;
+        --font-narrativa: "Plus Jakarta Sans", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--azul-profundo);
+      }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #palco {
+        position: absolute;
+        inset: 0;
+        background: var(--azul-profundo);
+      }
+      #camera { position: absolute; inset: 0; transform-origin: 540px 860px; }
+      #fita { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+
+      .frase {
+        position: absolute;
+        left: 0;
+        width: 1080px;
+        text-align: center;
+        color: var(--branco-frio);
+        font-family: var(--font-narrativa);
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        --p: 0px;
+      }
+      .frase .linha { display: block; overflow: hidden; padding: 0.04em 0 0.14em; margin-bottom: -0.16em; }
+      .frase .linha > span { display: block; }
+      .media { font-size: 80px; line-height: 1.12; }
+      .grande { font-size: 108px; line-height: 1.05; }
+      /* frases reveladas pela ponta da fita: a máscara acompanha --p (x da ponta) */
+      .pela-fita {
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--p) - 70px), transparent var(--p));
+        mask-image: linear-gradient(90deg, #000 calc(var(--p) - 70px), transparent var(--p));
+      }
+      .apagada-pela-fita {
+        -webkit-mask-image: linear-gradient(90deg, transparent var(--q, -100px), #000 calc(var(--q, -100px) + 70px));
+        mask-image: linear-gradient(90deg, transparent var(--q, -100px), #000 calc(var(--q, -100px) + 70px));
+      }
+      #f1 { top: 1012px; }
+      #f2, #f3 { top: 1010px; }
+      #f4 { top: 1150px; }
+
+      /* lockup oficial: recortes da mesma imagem da logo, sem redesenho */
+      .recorte { position: absolute; overflow: hidden; }
+      .recorte .arte { position: absolute; background-image: url("assets/brand/logo-entrellun.png"); background-repeat: no-repeat; }
+      #assinatura {
+        position: absolute;
+        left: 0;
+        top: 1066px;
+        width: 1080px;
+        text-align: center;
+        color: var(--branco-frio);
+        font-family: var(--font-narrativa);
+        font-weight: 600;
+        font-size: 56px;
+        line-height: 1.2;
+        letter-spacing: -0.012em;
+      }
+      #assinatura .linha { display: block; overflow: hidden; padding: 0.04em 0 0.16em; margin-bottom: -0.2em; }
+      #assinatura .linha > span { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18" data-width="1080" data-height="1920" data-fps="60">
+      <div id="palco" class="clip" data-start="0" data-duration="18" data-track-index="0" data-layout-allow-overflow>
+        <div id="camera">
+          <canvas id="fita" width="1080" height="1920"></canvas>
+
+          <div id="f1" class="frase media">
+            <span class="linha"><span>Toda empresa é</span></span>
+            <span class="linha"><span>feita de encontros.</span></span>
+          </div>
+          <div id="f2" class="frase grande pela-fita">
+            <div id="f2a" class="apagada-pela-fita">
+              <span class="linha"><span>Pessoas têm</span></span>
+              <span class="linha"><span>potencial.</span></span>
+            </div>
+          </div>
+          <div id="f3" class="frase grande pela-fita">
+            <span class="linha"><span>Gestão dá</span></span>
+            <span class="linha"><span>direção.</span></span>
+          </div>
+          <div id="f4" class="frase media">
+            <span class="linha"><span>Juntos, fazem</span></span>
+            <span class="linha"><span>o negócio avançar.</span></span>
+          </div>
+
+          <div id="simbolo" class="recorte" role="img" aria-label="Símbolo Entrellun"><div class="arte"></div></div>
+          <div id="nome" class="recorte" role="img" aria-label="Entrellun"><div class="arte"></div></div>
+          <div id="categoria" class="recorte" role="img" aria-label="Gente e Gestão"><div class="arte"></div></div>
+          <div id="assinatura">
+            <span class="linha"><span>Conexões que sustentam</span></span>
+            <span class="linha"><span>o crescimento.</span></span>
+          </div>
+        </div>
+      </div>
+      <audio id="trilha" src="assets/audio/trilha-entrellun.wav" data-start="0" data-duration="18" data-volume="1" data-track-index="1"></audio>
+    </div>
+
+    <script>
+      (() => {
+        // ------------------------------------------------------------------ constantes
+        const W = 1080, H = 1920;
+        const COR = {
+          luz: [55, 138, 254],      // face clara da fita oficial
+          sombra: [33, 88, 229],    // face escura da fita oficial
+          eletrico: [21, 87, 255],  // azul elétrico da paleta
+          ciano: [55, 213, 242],
+          coral: [255, 120, 85],
+        };
+        const ease = (n) => gsap.parseEase(n);
+        const E = {
+          p2i: ease("power2.in"), p2o: ease("power2.out"), p2io: ease("power2.inOut"),
+          p3i: ease("power3.in"), p3o: ease("power3.out"), p3io: ease("power3.inOut"),
+          p4io: ease("power4.inOut"), sio: ease("sine.inOut"), so: ease("sine.out"),
+          expo: ease("expo.out"), back: ease("back.out(2.2)"),
+        };
+        const clamp01 = (x) => Math.min(1, Math.max(0, x));
+        const seg = (t, a, b) => clamp01((t - a) / (b - a));
+        const lerp = (a, b, k) => a + (b - a) * k;
+        const mix = (c1, c2, k) => [lerp(c1[0], c2[0], k), lerp(c1[1], c2[1], k), lerp(c1[2], c2[2], k)];
+        const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+        // ------------------------------------------------------------------ símbolo oficial (curva ajustada)
+        const SYM = window.SIMBOLO;
+        const XC = SYM.cruzamento;            // cruzamento em px da arte original
+        const U_SOB = SYM.uCruzamento[0];     // passagem por baixo (diagonal ↖↘)
+        const U_SOBRE = SYM.uCruzamento[1];   // passagem por cima (diagonal ↙↗)
+        const NS = SYM.pontos.length;
+        function symAt(u) {
+          u = ((u % 1) + 1) % 1;
+          const f = u * NS, i = Math.floor(f), k = f - i;
+          const a = SYM.pontos[i], b = SYM.pontos[(i + 1) % NS];
+          return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+        }
+        // face da fita oficial ao longo de u: clara na diagonal por cima, escura na diagonal por baixo
+        const faceU = (u) => 0.5 - 0.5 * Math.cos(2 * Math.PI * (u - U_SOB));
+
+        // logo inteira: escala 0,8; topo do conteúdo (y=354 na arte) em y=500 da tela, centrada em x=540
+        const LS = 0.8, LX = 540 - ((105 + 1171) / 2) * LS, LY = 500 - 354 * LS;
+        const POSE_FINAL = { s: LS, x: LX + XC[0] * LS, y: LY + XC[1] * LS };
+        const POSE_ENTRE = { s: 1.12, x: 540, y: 760 };
+
+        function montaRecorte(id, caixa, pad) {
+          const el = document.getElementById(id);
+          const [x0, y0, x1, y1] = [caixa[0] - pad, caixa[1] - pad, caixa[2] + pad, caixa[3] + pad];
+          Object.assign(el.style, {
+            left: LX + x0 * LS + "px", top: LY + y0 * LS + "px",
+            width: (x1 - x0) * LS + "px", height: (y1 - y0) * LS + "px",
+          });
+          Object.assign(el.querySelector(".arte").style, {
+            left: 0, top: 0, width: (x1 - x0) * LS + "px", height: (y1 - y0) * LS + "px",
+            backgroundSize: 1254 * LS + "px " + 1254 * LS + "px", backgroundPosition: -x0 * LS + "px " + -y0 * LS + "px",
+          });
+          return { el, x0, y0 };
+        }
+        const recSim = montaRecorte("simbolo", SYM.caixas.simbolo, 10);
+        montaRecorte("nome", SYM.caixas.entrellun, 6);
+        montaRecorte("categoria", SYM.caixas.genteGestao, 6);
+        // origem da escala do símbolo = cruzamento (mesma origem da fita em código)
+        const origemSim = [(XC[0] - recSim.x0) * LS, (XC[1] - recSim.y0) * LS];
+        recSim.el.style.transformOrigin = `${origemSim[0]}px ${origemSim[1]}px`;
+
+        // ------------------------------------------------------------------ caminhos
+        function catmull(P, n = 20) {
+          const out = [];
+          for (let i = 0; i < P.length - 1; i++) {
+            const p0 = P[Math.max(i - 1, 0)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(i + 2, P.length - 1)];
+            for (let k = 0; k < n; k++) {
+              const t = k / n, t2 = t * t, t3 = t2 * t;
+              out.push([0, 1].map((j) => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+            }
+          }
+          out.push(P[P.length - 1].slice());
+          return out;
+        }
+        class Caminho {
+          constructor(pts) {
+            this.p = pts;
+            this.L = [0];
+            for (let i = 1; i < pts.length; i++) this.L.push(this.L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+            this.len = this.L[this.L.length - 1];
+          }
+          at(s) {
+            const p = this.p, L = this.L, n = p.length;
+            if (s <= 0) { const d = this.dir(0); return [p[0][0] + d[0] * s, p[0][1] + d[1] * s]; }
+            if (s >= this.len) { const d = this.dir(n - 2); const e = s - this.len; return [p[n - 1][0] + d[0] * e, p[n - 1][1] + d[1] * e]; }
+            let lo = 0, hi = n - 1;
+            while (hi - lo > 1) { const m = (lo + hi) >> 1; if (L[m] <= s) lo = m; else hi = m; }
+            const k = (s - L[lo]) / (L[hi] - L[lo] || 1);
+            return [lerp(p[lo][0], p[hi][0], k), lerp(p[lo][1], p[hi][1], k)];
+          }
+          dir(i) {
+            const a = this.p[i], b = this.p[i + 1], d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+            return [(b[0] - a[0]) / d, (b[1] - a[1]) / d];
+          }
+          trecho(s0, s1, passo = 6) {
+            const n = Math.max(2, Math.ceil(Math.abs(s1 - s0) / passo) + 1), out = [];
+            for (let k = 0; k < n; k++) out.push(this.at(lerp(s0, s1, k / (n - 1))));
+            return out;
+          }
+        }
+
+        // ENCONTRO — duas fitas simétricas em relação ao ponto M, apontando uma para a outra
+        const M = [540, 690];
+        const DIR = (() => { const d = Math.hypot(1, -0.66); return [1 / d, -0.66 / d]; })();
+        const PERP = [-DIR[1], DIR[0]];
+        const local = (a, b, sinal) => [M[0] + sinal * (DIR[0] * a + PERP[0] * b), M[1] + sinal * (DIR[1] * a + PERP[1] * b)];
+        const ctrlEnc = [[-1500, 420], [-1150, 330], [-840, 200], [-560, 80], [-290, 12], [-22, 0], [240, 18], [600, 40], [1100, 70], [1700, 90]];
+        const encA = new Caminho(catmull(ctrlEnc.map(([a, b]) => local(a, b, 1))));
+        const encB = new Caminho(catmull(ctrlEnc.map(([a, b]) => local(a, b, -1))));
+        const PONTA_ENC = (() => { // comprimento de arco da ponta (a = −22): 44 px de fresta entre as pontas
+          let best = 0, d0 = 1e9; const alvo = local(-22, 0, 1);
+          for (let s = 0; s < encA.len; s += 0.5) { const p = encA.at(s); const d = Math.hypot(p[0] - alvo[0], p[1] - alvo[1]); if (d < d0) { d0 = d; best = s; } }
+          return best;
+        })();
+        const LEN_ENC = 900;
+
+        // POTENCIAL — fita orgânica atravessando a tela
+        const Y_DIR = 760; // linha da direção (fita da gestão)
+        const ondaBase = catmull([[-320, 820], [-60, 760], [190, 600], [420, 585], [620, 790], [820, 905], [1010, 790], [1180, 610], [1480, 560]], 24);
+
+        // DIREÇÃO — percurso reto e preciso
+        const reta = new Caminho([[-260, Y_DIR], [1340, Y_DIR]]);
+
+        function onda(t) {
+          // ondulação lenta + acalma quando a gestão entra
+          const calma = 1 - 0.42 * E.p3io(seg(t, 6.25, 7.7));
+          const amp = 11 * clamp01((t - 3.6) / 1.2);
+          return new Caminho(ondaBase.map(([x, y]) => [x, Y_DIR + (y + amp * Math.sin(2 * Math.PI * (x / 880 - 0.22 * (t - 3.6))) - Y_DIR) * calma]));
+        }
+
+        // traços dispersos → alinhados
+        const TRACOS = [
+          // [x, y, ângulo (graus), comprimento] disperso   ->   [x, y] alinhado
+          [[150, 330, 38, 64], [150, 610]], [[352, 228, -62, 52], [330, 610]], [[612, 300, 14, 70], [510, 610]],
+          [[868, 250, -28, 58], [690, 610]], [[990, 438, 71, 50], [870, 610]], [[96, 548, -18, 46], [240, 910]],
+          [[300, 418, 104, 56], [420, 910]], [[742, 450, 52, 60], [600, 910]], [[930, 930, -40, 52], [780, 910]],
+        ];
+
+        // ------------------------------------------------------------------ desenho
+        const cv = document.getElementById("fita");
+        const g = cv.getContext("2d");
+        const fundo = (() => {
+          const r = g.createRadialGradient(540, 760, 40, 540, 820, 1250);
+          r.addColorStop(0, "#0b2a78");
+          r.addColorStop(0.45, "#082062");
+          r.addColorStop(1, "#04133c");
+          return r;
+        })();
+
+        function normais(pts) {
+          const n = pts.length, N = [];
+          for (let i = 0; i < n; i++) {
+            const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+            const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1;
+            N.push([-dy / d, dx / d]);
+          }
+          return N;
+        }
+        function poligono(Lp, Rp, i0, i1) {
+          g.beginPath();
+          g.moveTo(Lp[i0][0], Lp[i0][1]);
+          for (let i = i0 + 1; i <= i1; i++) g.lineTo(Lp[i][0], Lp[i][1]);
+          for (let i = i1; i >= i0; i--) g.lineTo(Rp[i][0], Rp[i][1]);
+          g.closePath();
+        }
+        // fita: pontos da linha central, meia-largura por ponto, cor por ponto, sombra projetada
+        function fita(pts, hw, cor, o = {}) {
+          const n = pts.length;
+          if (n < 2) return;
+          const N = normais(pts), Lp = [], Rp = [];
+          for (let i = 0; i < n; i++) {
+            const w = typeof hw === "function" ? hw(i / (n - 1), i) : hw;
+            Lp.push([pts[i][0] + N[i][0] * w, pts[i][1] + N[i][1] * w]);
+            Rp.push([pts[i][0] - N[i][0] * w, pts[i][1] - N[i][1] * w]);
+          }
+          if (o.clip) { g.save(); g.beginPath(); g.arc(o.clip[0], o.clip[1], o.clip[2], 0, Math.PI * 2); g.clip(); }
+          if (o.vao) { // vão: recorta o que está por baixo com a cor do fundo (passagem por cima)
+            const Lv = [], Rv = [];
+            for (let i = 0; i < n; i++) {
+              const w = (typeof hw === "function" ? hw(i / (n - 1), i) : hw) + o.vao;
+              Lv.push([pts[i][0] + N[i][0] * w, pts[i][1] + N[i][1] * w]);
+              Rv.push([pts[i][0] - N[i][0] * w, pts[i][1] - N[i][1] * w]);
+            }
+            g.fillStyle = fundo;
+            poligono(Lv, Rv, 0, n - 1); g.fill();
+          }
+          if (o.sombra) {
+            g.save();
+            g.shadowColor = `rgba(1,6,30,${o.sombraA === undefined ? 0.55 : o.sombraA})`;
+            g.shadowBlur = o.sombra;
+            g.shadowOffsetY = o.sombra * 0.4;
+            g.fillStyle = rgb(cor(0.5, n >> 1));
+            poligono(Lp, Rp, 0, n - 1); g.fill();
+            g.restore();
+          }
+          if (o.clip) g.restore();
+          const CH = 2;
+          for (let i = 0; i < n - 1; i += CH) {
+            const j = Math.min(n - 1, i + CH + 1);
+            g.fillStyle = rgb(cor((i + CH / 2) / (n - 1), Math.min(n - 1, i + 1)));
+            poligono(Lp, Rp, i, j); g.fill();
+          }
+        }
+
+        // cor da fita "pessoas": torção suave entre as duas faces
+        const corPessoas = (s0, s1) => (f) => mix(COR.sombra, COR.luz, 0.62 + 0.38 * Math.sin((lerp(s0, s1, f)) / 260));
+        const corGestao = () => COR.eletrico;
+        const hwPessoas = (s0, s1, base) => (f) => base * (0.86 + 0.14 * Math.cos(lerp(s0, s1, f) / 210));
+
+        // ---------------------------------------------------------- lemniscata (entrelaçamento)
+        const NM = 260;
+        function poseEm(t) {
+          if (t < 12.95) return POSE_ENTRE;
+          const F = POSE_FINAL;
+          if (t < 13.5) {
+            const k = E.p2io(seg(t, 12.95, 13.45));
+            return { s: lerp(POSE_ENTRE.s, F.s * 0.975, k), x: lerp(POSE_ENTRE.x, F.x, k), y: lerp(POSE_ENTRE.y, F.y, k) };
+          }
+          let s;
+          if (t < 13.64) s = lerp(F.s * 0.975, F.s * 1.022, E.p2o(seg(t, 13.5, 13.64)));
+          else s = lerp(F.s * 1.022, F.s, E.sio(seg(t, 13.64, 14.15)));
+          return { s, x: F.x, y: F.y };
+        }
+        const naPose = (p, pose) => [pose.x + (p[0] - XC[0]) * pose.s, pose.y + (p[1] - XC[1]) * pose.s];
+        function alcance(t) { // fração de cada laço já percorrida
+          if (t < 11.0) return 0.8 * E.p2o(seg(t, 9.82, 11.0));
+          if (t < 12.9) return lerp(0.8, 0.962, E.sio(seg(t, 11.0, 12.9)));
+          if (t < 13.15) return lerp(0.962, 0.952, E.sio(seg(t, 12.9, 13.15)));
+          return lerp(0.952, 1, E.p3i(seg(t, 13.15, 13.5)));
+        }
+        // laço A (esquerdo) vai de U_SOB para frente; laço B (direito) de U_SOB para trás
+        const SPAN_A = U_SOBRE - U_SOB, SPAN_B = 1 - SPAN_A;
+
+        // ------------------------------------------------------------------ cena por tempo
+        const f2 = document.getElementById("f2"), f2a = document.getElementById("f2a"), f3 = document.getElementById("f3");
+        const caixaTexto = { x0: 120, x1: 960 };
+        const simEl = recSim.el;
+
+        // janelas em que cada frase existe (fora delas, oculta por completo)
+        const JANELAS = [["f1", 1.2, 2.95], ["f2", 2.85, 6.75], ["f3", 5.9, 9.6], ["f4", 9.85, 13.5], ["assinatura", 14.75, 99]]
+          .map(([id, a, b]) => [document.getElementById(id), a, b]);
+
+        function render(t) {
+          JANELAS.forEach(([el, a, b]) => { el.style.visibility = t >= a && t < b ? "visible" : "hidden"; });
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.fillStyle = fundo;
+          g.fillRect(0, 0, W, H);
+
+          // ---- traços (fundo, paralaxe lenta)
+          const apareceT = (i) => E.p3o(seg(t, 3.55 + i * 0.07, 4.25 + i * 0.07));
+          const alinhaT = (i) => E.p3io(seg(t, 6.3 + i * 0.045, 7.35 + i * 0.045));
+          const recolheT = (i) => E.p2i(seg(t, 9.15 + i * 0.02, 9.6 + i * 0.02));
+          if (t > 3.5 && t < 9.7) {
+            g.lineCap = "round";
+            TRACOS.forEach(([d, a], i) => {
+              const ap = apareceT(i), al = alinhaT(i), rc = recolheT(i);
+              if (ap <= 0 || rc >= 1) return;
+              const deriva = (1 - al) * 6 * Math.sin(t * 0.9 + i);
+              const x = lerp(d[0], a[0], al), y = lerp(d[1], a[1], al) + deriva - (1 - al) * (t - 3.5) * 4;
+              const ang = lerp(d[2], 0, al) * Math.PI / 180;
+              const len = lerp(d[3], 74, al) * ap * (1 - rc);
+              const yy = lerp(y, Y_DIR, rc);
+              g.strokeStyle = `rgba(150,185,255,${0.34 * ap})`;
+              g.lineWidth = 6;
+              g.beginPath();
+              g.moveTo(x - Math.cos(ang) * len / 2, yy - Math.sin(ang) * len / 2);
+              g.lineTo(x + Math.cos(ang) * len / 2, yy + Math.sin(ang) * len / 2);
+              g.stroke();
+            });
+          }
+
+          // ---- ENCONTRO
+          if (t < 3.3) {
+            let sA, sB;
+            const chegada = E.p3o(seg(t, 0, 0.95));
+            const respiro = -9 * E.sio(seg(t, 1.0, 1.42)) + 6 * E.sio(seg(t, 1.42, 2.45));
+            sA = sB = lerp(PONTA_ENC - 330, PONTA_ENC, chegada) + respiro;
+            // saída: a gestão abre caminho e a fita das pessoas avança pela mesma diagonal
+            sB -= 1500 * E.p2i(seg(t, 2.42, 3.1));
+            sA += 1650 * E.p2i(seg(t, 2.5, 3.22));
+            const par = 1.04; // paralaxe: fita A ligeiramente mais próxima
+            fita(encB.trecho(sB - LEN_ENC, sB), hwPessoas(sB - LEN_ENC, sB, 32), (f) => mix(COR.eletrico, COR.sombra, 0.3), { sombra: 26 });
+            fita(encA.trecho(sA - LEN_ENC, sA), hwPessoas(sA - LEN_ENC, sA, 32 * par), corPessoas(sA - LEN_ENC, sA), { sombra: 30 });
+          }
+
+          // ---- POTENCIAL / DIREÇÃO
+          let ondaT = null, sOnda = 0, sReta = -1;
+          // 9,3–9,9: a onda e a reta se recolhem para o ponto onde vão se entrelaçar
+          const recolhe = E.p3i(seg(t, 9.3, 9.88));
+          if (t >= 2.8 && t < 9.9) {
+            ondaT = onda(t);
+            sOnda = lerp(-40, ondaT.len + 120, E.p2o(seg(t, 2.8, 4.25)));
+            const sc = centroOnda(ondaT);
+            const pts = ondaT.trecho(lerp(Math.max(0, sOnda - 2600), sc, recolhe), lerp(sOnda, sc + 1, recolhe));
+            fita(pts, hwPessoas(0, sOnda, 29), corPessoas(0, sOnda), { sombra: 30 });
+            const cab = ondaT.at(sOnda);
+            f2.style.setProperty("--p", (cab[0] - caixaTexto.x0 + 120) + "px");
+          }
+          if (t >= 5.9 && t < 9.9) {
+            sReta = lerp(-10, reta.len + 200, E.p4io(seg(t, 5.9, 7.0)));
+            const sc = 540 + 260;
+            const pts = reta.trecho(lerp(Math.max(0, sReta - 2000), sc, recolhe), lerp(sReta, sc + 1, recolhe));
+            fita(pts, 31, corGestao, { sombra: 34, vao: 9 });
+            const cab = reta.at(sReta);
+            f3.style.setProperty("--p", (cab[0] - 40) + "px");
+            f2a.style.setProperty("--q", (cab[0] + 40) + "px");
+            // detalhe coral: o primeiro cruzamento, por um instante
+            const k = E.back(seg(t, 6.42, 6.7)) * (1 - E.p2i(seg(t, 6.95, 7.25)));
+            if (k > 0.001) {
+              const xc = cruzamentoOnda(ondaT);
+              g.fillStyle = rgb(COR.coral);
+              g.beginPath(); g.arc(xc, Y_DIR, 11 * k, 0, Math.PI * 2); g.fill();
+            }
+          } else {
+            f3.style.setProperty("--p", t < 5.9 ? "-200px" : "2400px");
+            f2a.style.setProperty("--q", t < 5.9 ? "-200px" : "2400px");
+          }
+
+          // ---- ENTRELAÇAMENTO + REVELAÇÃO
+          if (t >= 9.82 && t < 14.0) {
+            // do ponto de recolhimento nasce uma única fita: cada laço cresce num sentido
+            const m = E.sio(seg(t, 9.8, 10.7));
+            const pose = poseEm(t);
+            const fr = alcance(t);
+            const ptsA = [], uA = [], ptsB = [], uB = [];
+            for (let i = 0; i < NM; i++) {
+              const k = i / (NM - 1);
+              // A: cauda (esquerda) → chegada por cima; cabeça (direita) → saída por baixo
+              const ua = U_SOB - 0.006 + (SPAN_A * fr + 0.006) * (1 - k); // leve sobreposição: sem emenda no trecho por baixo
+              ptsA.push(naPose(symAt(ua), pose)); uA.push(ua);
+              const ub = U_SOB + 0.006 - (SPAN_B * fr + 0.006) * k;
+              ptsB.push(naPose(symAt(ub), pose)); uB.push(ub);
+            }
+            const hwE = SYM.meiaLargura * pose.s;
+            const hwA = (f) => lerp(29 * (0.86 + 0.14 * Math.cos(f * 9)), hwE, m);
+            const hwB = () => lerp(31, hwE, m);
+            const ciano = E.sio(seg(t, 12.75, 13.42)) * (1 - E.p2o(seg(t, 13.5, 13.75)));
+            const corU = (u, base) => {
+              let c = mix(base, mix(COR.sombra, COR.luz, faceU(u)), m);
+              const du = Math.abs((((u - U_SOBRE) % 1) + 1.5) % 1 - 0.5);
+              const realce = ciano * Math.exp(-(du / 0.07) * (du / 0.07));
+              return mix(c, COR.ciano, realce * 0.85);
+            };
+            const corA = (f, i) => corU(uA[i], mix(COR.sombra, COR.luz, 0.75));
+            const corB = (f, i) => corU(uB[i], COR.eletrico);
+
+            g.save();
+            if (t >= 13.5) { // a fita em código só existe fora do círculo que revela o símbolo oficial
+              const r = raioRevela(t);
+              g.beginPath(); g.rect(0, 0, W, H); g.arc(pose.x, pose.y, r, 0, Math.PI * 2, true); g.clip("evenodd");
+            }
+            // quanto do fim de cada laço passa por cima (só quando a forma já está definida)
+            // trechos que passam por cima: perto do cruzamento (u ≈ U_SOBRE), já com a forma definida
+            const perto = 0.1;
+            const cA = m > 0.9 ? uA.filter((u) => U_SOBRE - u < perto).length : 0;
+            const cB = m > 0.9 ? uB.filter((u) => u - (U_SOB - SPAN_B) < perto).length : 0;
+            const parte = (pts, a, b) => pts.slice(a, b);
+            // A: índices pequenos = chegada por cima; B: índices grandes = chegada por cima
+            fita(parte(ptsA, cA, NM), (f, i) => hwA((i + cA) / NM), (f, i) => corA(f, i + cA), { sombra: 30 });
+            fita(parte(ptsB, 0, NM - cB), (f, i) => hwB(), (f, i) => corB(f, i), { sombra: 30 });
+            const clip = [pose.x, pose.y, hwE * 2.6];
+            if (cA > 1) fita(parte(ptsA, 0, cA + 1), (f, i) => hwA(i / NM), (f, i) => corA(f, i), { sombra: 22, sombraA: 0.75, vao: 7 * pose.s / 0.8, clip });
+            if (cB > 1) fita(parte(ptsB, NM - cB - 1, NM), (f, i) => hwB(), (f, i) => corB(f, i + NM - cB - 1), { sombra: 22, sombraA: 0.75, vao: 7 * pose.s / 0.8, clip });
+            g.restore();
+          }
+
+          // ---- símbolo oficial: mesma pose da fita, revelado a partir do cruzamento
+          if (t >= 13.5) {
+            const pose = poseEm(t);
+            simEl.style.opacity = 1;
+            simEl.style.transform = `scale(${pose.s / LS})`;
+            simEl.style.clipPath = `circle(${raioRevela(t) / (pose.s / LS)}px at ${origemSim[0]}px ${origemSim[1]}px)`;
+          } else {
+            simEl.style.opacity = 0;
+            simEl.style.clipPath = "circle(0px at 50% 50%)";
+          }
+        }
+        const raioRevela = (t) => 560 * E.p3o(seg(t, 13.5, 13.92));
+        function centroOnda(c) { // comprimento de arco do cruzamento com a reta mais próximo do centro
+          const x = cruzamentoOnda(c);
+          let best = 0, d0 = 1e9;
+          for (let i = 0; i < c.p.length; i++) { const d = Math.hypot(c.p[i][0] - x, c.p[i][1] - Y_DIR); if (d < d0) { d0 = d; best = c.L[i]; } }
+          return best;
+        }
+        function cruzamentoOnda(c) {
+          let best = 540, d0 = 1e9;
+          for (let i = 1; i < c.p.length; i++) {
+            const a = c.p[i - 1], b = c.p[i];
+            if ((a[1] - Y_DIR) * (b[1] - Y_DIR) <= 0) {
+              const x = lerp(a[0], b[0], (Y_DIR - a[1]) / ((b[1] - a[1]) || 1));
+              if (Math.abs(x - 540) < d0) { d0 = Math.abs(x - 540); best = x; }
+            }
+          }
+          return best;
+        }
+
+        // ------------------------------------------------------------------ linha do tempo (texto)
+        const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+        const linhas = (id) => document.getElementById(id).querySelectorAll(".linha > span");
+
+        // 1 · Toda empresa é feita de encontros.
+        tl.fromTo(linhas("f1"), { yPercent: 112 }, { yPercent: 0, duration: 0.62, ease: "power3.out", stagger: 0.12 }, 1.28);
+        tl.to(linhas("f1"), { yPercent: -112, duration: 0.4, ease: "power2.in", stagger: 0.05 }, 2.5);
+        // 2 · Pessoas têm potencial.  (revelada pela ponta da fita; sobe 24 px junto)
+        tl.fromTo(linhas("f2"), { y: 26 }, { y: 0, duration: 1.1, ease: "power3.out", stagger: 0.08 }, 2.95);
+        // 3 · Gestão dá direção.  (a fita reta revela 3 enquanto apaga 2)
+        tl.to(linhas("f3"), { yPercent: 112, duration: 0.38, ease: "power2.in", stagger: 0.05 }, 9.18);
+        // 4 · Juntos, fazem o negócio avançar.
+        tl.fromTo(linhas("f4"), { yPercent: 112 }, { yPercent: 0, duration: 0.62, ease: "power3.out", stagger: 0.12 }, 9.9);
+        tl.fromTo("#f4", { y: 0 }, { y: -8, duration: 3.1, ease: "none" }, 10.0);
+        tl.to(linhas("f4"), { yPercent: 112, duration: 0.34, ease: "power2.in", stagger: 0.04 }, 13.08);
+        // Revelação: Entrellun → Gente e Gestão → assinatura
+        tl.fromTo("#nome .arte", { y: 182 }, { y: 0, duration: 0.6, ease: "power3.out" }, 13.82);
+        tl.fromTo("#categoria .arte", { y: 74 }, { y: 0, duration: 0.55, ease: "power3.out" }, 14.3);
+        tl.fromTo(linhas("assinatura"), { yPercent: 112 }, { yPercent: 0, duration: 0.58, ease: "power3.out", stagger: 0.1 }, 14.8);
+        // respiração mínima da composição final
+        tl.fromTo("#camera", { scale: 1 }, { scale: 1.014, duration: 3.7, ease: "sine.inOut" }, 14.3);
+        tl.set({}, {}, 18);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["main"] = tl;
+        window.addEventListener("hf-seek", (e) => render(e.detail.time));
+        tl.seek(0);
+        render(0);
+      })();
+    </script>
+  </body>
+</html>

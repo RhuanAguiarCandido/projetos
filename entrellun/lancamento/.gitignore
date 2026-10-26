@@ -1,0 +1,6 @@
+node_modules/
+renders/.hf-segments/
+snapshots/
+.debug/
+.hyperframes/
+renders/work-*/

@@ -142,8 +142,8 @@ function render(t){
 
   // ===== background states =====
   // 0-4: deep | 4-17: white (wipe up at 3.85) | 17-25: deep (wipe down at 16.7)
-  const toWhite=prog(t,3.85,4.65), toDeep=prog(t,16.5,17.3);
-  if(t<16.5){ctx.fillStyle=t<4.65?C.deep:C.white;ctx.fillRect(0,0,W,H);} else {ctx.fillStyle=t<17.3?C.white:C.deep;ctx.fillRect(0,0,W,H);}
+  const toWhite=prog(t,3.85,4.65), toDeep=prog(t,16.75,17.5);
+  if(t<16.75){ctx.fillStyle=t<4.65?C.deep:C.white;ctx.fillRect(0,0,W,H);} else {ctx.fillStyle=t<17.5?C.white:C.deep;ctx.fillRect(0,0,W,H);}
 
   // ===== SCENE 1 : encontros =====
   if(t<4.65){
@@ -195,12 +195,12 @@ function render(t){
   }
 
   // ===== SCENE 4 : atuação (white) =====
-  if(t>=11.9&&t<17.0){
+  if(t>=11.85&&t<17.2){
     const X=170,Y0=610,GAP=252,size=70,lh=82;
-    const starts=[12.05,13.65,15.15];const tout=16.3;
+    const starts=[11.95,13.85,15.6];const tout=16.6;
     const pout=eio(prog(t,tout,tout+0.4));
     // connector line on the left margin column (x=128) linking the markers
-    const lineP=eo(prog(t,12.0,15.6));
+    const lineP=eo(prog(t,11.95,16.0));
     ctx.globalAlpha=1-pout;ctx.strokeStyle=C.deep;ctx.lineWidth=3;ctx.beginPath();
     ctx.moveTo(128,Y0-50);ctx.lineTo(128,Y0-50+(2*GAP)*lineP);ctx.stroke();
     starts.forEach((s,i)=>{const pm=eo(prog(t,s,s+0.4));if(pm>0){ctx.fillStyle=C.coral;ctx.beginPath();ctx.arc(128,Y0-50+i*GAP,9*pm,0,7);ctx.fill();}});
@@ -210,7 +210,7 @@ function render(t){
       textBlock(t,starts[i],tout,[L[2*i],L[2*i+1]],{x:X,y:Y0+i*GAP,size,lh,align:'left',weight:700});
     }
   }
-  if(t>=16.5&&t<17.35) drawWipe(t,16.5,17.3,C.deep,C.elec,false);
+  if(t>=16.75&&t<17.55) drawWipe(t,16.75,17.5,C.deep,C.elec,false);
 
   // ===== SCENE 5 : nascimento =====
   const s5=1.1, c5=[540,860];
@@ -221,7 +221,7 @@ function render(t){
     const mv=eio(prog(t,20.15,21.0));
     const s=lerp(s5,sF,mv), cx=lerp(c5[0],cF[0],mv), cy=lerp(c5[1],cF[1],mv);
     const xf=symXf(s,cx,cy);
-    const p1=eio(prog(t,17.3,18.55)), p2=eio(prog(t,18.35,19.55));
+    const p1=eio(prog(t,17.45,18.65)), p2=eio(prog(t,18.45,19.6));
     if(p2<1){
       drawFaceMasked(IM.dark,H2,p2,xf,s);   // under face first
       drawFaceMasked(IM.light,H1,p1,xf,s);  // over face passes on top at the crossing
@@ -244,7 +244,7 @@ function render(t){
       }
       ctx.setTransform(1,0,0,1,0,0);
     }
-    textBlock(t,17.6,19.75,[[['Assim nasce a ',C.white],['Entrellun',C.white],['.',C.white]]],{x:540,y:1210,size:62,lh:70,align:'center',weight:600});
+    textBlock(t,17.85,19.8,[[['Assim nasce a ',C.white],['Entrellun',C.white],['.',C.white]]],{x:540,y:1210,size:62,lh:70,align:'center',weight:600});
   }
 
   // ===== SCENE 6 : assinatura =====

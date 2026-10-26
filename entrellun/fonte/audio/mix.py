@@ -84,8 +84,8 @@ add(fx, whoosh(1.6, 1.1, 300, 1400, 0.10), 0.0)    # traces appear
 add(fx, whoosh(1.2, 0.75, 400, 2600, 0.20), 3.6)   # sweep to white
 add(fx, whoosh(1.4, 0.9, 300, 1500, 0.11), 7.8)    # ribbons interlace
 add(fx, whoosh(1.0, 0.6, 500, 2000, 0.12), 11.7)   # to composition
-add(fx, whoosh(1.2, 0.75, 2600, 400, 0.20), 16.3)  # sweep back to deep blue
-add(fx, whoosh(2.2, 1.3, 300, 1700, 0.11), 17.2)   # ribbon draws the symbol
+add(fx, whoosh(1.2, 0.75, 2600, 400, 0.20), 16.55)  # sweep back to deep blue
+add(fx, whoosh(2.2, 1.3, 300, 1700, 0.11), 17.4)   # ribbon draws the symbol
 add(fx, whoosh(0.9, 0.6, 600, 2200, 0.09), 20.0)   # symbol settles
 
 music = pad * 0.30 + pulse * 0.30 + arp * 0.55 + res * 0.65
@@ -101,13 +101,14 @@ mL = reverb(music + fx * 0.6, seed=1) + fx * 0.4
 mR = reverb(music + fx * 0.6, seed=2) + fx * 0.4
 
 # ---------- narration ----------
-vo_times = [0.50, 4.45, 8.35, 12.05, 13.65, 15.15, 17.60, 21.00, 22.35]
+import json
+vo_times = json.load(open(os.path.join(os.environ['VO_DIR'], 'starts.json')))
 vo = np.zeros(N)
 for i, st in enumerate(vo_times):
     x, sr = sf.read(os.path.join(os.environ.get('VO_DIR', D), f'vo_{i}.wav')); assert sr == SR
     add(vo, x / (np.abs(x).max() + 1e-9) * 0.7, st)
 # gentle presence: light reverb on voice
-vo_rv = reverb(vo, secs=0.8, wet=0.08, seed=3)
+vo_rv = vo  # dry voice: no reverb on the narration
 
 # ducking: music dips ~7 dB under the voice
 envv = np.abs(vo); w = int(0.12 * SR)

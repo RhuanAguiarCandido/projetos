@@ -321,6 +321,7 @@
             g.restore();
           }
           if (o.clip) g.restore();
+          if (o.soSombra) return;
           const CH = 2;
           for (let i = 0; i < n - 1; i += CH) {
             const j = Math.min(n - 1, i + CH + 1);
@@ -453,7 +454,7 @@
             for (let i = 0; i < NM; i++) {
               const k = i / (NM - 1);
               // A: cauda (esquerda) → chegada por cima; cabeça (direita) → saída por baixo
-              const ua = U_SOB - 0.006 + (SPAN_A * fr + 0.006) * (1 - k); // leve sobreposição: sem emenda no trecho por baixo
+              const ua = U_SOB - 0.006 + (SPAN_A * fr + 0.006 + 0.006 * clamp01((fr - 0.99) / 0.01)) * (1 - k); // ao fechar, a ponta A cobre a junção // leve sobreposição: sem emenda no trecho por baixo
               ptsA.push(naPose(symAt(ua), pose)); uA.push(ua);
               const ub = U_SOB + 0.006 - (SPAN_B * fr + 0.006) * k;
               ptsB.push(naPose(symAt(ub), pose)); uB.push(ub);
@@ -483,11 +484,18 @@
             const cB = m > 0.9 ? uB.filter((u) => u - (U_SOB - SPAN_B) < perto).length : 0;
             const parte = (pts, a, b) => pts.slice(a, b);
             // A: índices pequenos = chegada por cima; B: índices grandes = chegada por cima
-            fita(parte(ptsA, cA, NM), (f, i) => hwA((i + cA) / NM), (f, i) => corA(f, i + cA), { sombra: 30 });
-            fita(parte(ptsB, 0, NM - cB), (f, i) => hwB(), (f, i) => corB(f, i), { sombra: 30 });
+            // sombras primeiro: a sombra de uma metade não pode cair sobre a outra na junção por baixo
+            fita(parte(ptsA, cA, NM), (f, i) => hwA((i + cA) / NM), (f, i) => corA(f, i + cA), { sombra: 30, soSombra: true });
+            fita(parte(ptsB, 0, NM - cB), (f, i) => hwB(), (f, i) => corB(f, i), { sombra: 30, soSombra: true });
+            fita(parte(ptsA, cA, NM), (f, i) => hwA((i + cA) / NM), (f, i) => corA(f, i + cA));
+            fita(parte(ptsB, 0, NM - cB), (f, i) => hwB(), (f, i) => corB(f, i));
             const clip = [pose.x, pose.y, hwE * 2.6];
-            if (cA > 1) fita(parte(ptsA, 0, cA + 1), (f, i) => hwA(i / NM), (f, i) => corA(f, i), { sombra: 22, sombraA: 0.75, vao: 7 * pose.s / 0.8, clip });
-            if (cB > 1) fita(parte(ptsB, NM - cB - 1, NM), (f, i) => hwB(), (f, i) => corB(f, i + NM - cB - 1), { sombra: 22, sombraA: 0.75, vao: 7 * pose.s / 0.8, clip });
+            const sobreA = cA > 1 && [parte(ptsA, 0, cA + 4), (f, i) => hwA(i / NM), (f, i) => corA(f, i)];
+            const sobreB = cB > 1 && [parte(ptsB, NM - cB - 4, NM), (f, i) => hwB(), (f, i) => corB(f, i + NM - cB - 4)];
+            const sobre = [sobreA, sobreB].filter(Boolean);
+            // vão + sombra das duas pontas antes dos corpos, para uma ponta não sombrear a outra ao se unirem
+            sobre.forEach(([pts, hw, cor]) => fita(pts, hw, cor, { sombra: 22, sombraA: 0.75, vao: 7 * pose.s / 0.8, clip, soSombra: true }));
+            sobre.forEach(([pts, hw, cor]) => fita(pts, hw, cor));
             g.restore();
           }
 

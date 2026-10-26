@@ -14,7 +14,8 @@ Filme de 18 s, 9:16, 1080 × 1920, 60 fps, sem narração. Roteiro técnico em [
 
 ```
 index.html                         composição raiz (data-composition-id="main", 18 s, 60 fps)
-assets/brand/logo-entrellun-oficial-fundo-escuro.png   logo oficial, intocada
+assets/brand/logo-entrellun-oficial-fundo-escuro.png   logo oficial, intocada (idêntica ao anexo)
+assets/brand/referencias/          anexos recebidos: paleta e logos (fundo escuro e claro)
 assets/brand/logo-entrellun.png    a mesma logo com fundo transparente (tools/key_logo.py)
 assets/data/simbolo.js             linha central da fita do símbolo oficial (tools/fit_symbol.py)
 assets/fonts/                      Plus Jakarta Sans (SIL OFL 1.1) — tipografia narrativa
@@ -50,5 +51,11 @@ Tudo é determinístico: o ruído da trilha vem de um PRNG com semente fixa e ca
 ## Decisões
 
 - **Andamento 120 BPM**: os inícios de seção (2,5 · 6 · 9,5 · 13,5 s) caem exatamente em tempos; o impacto da logo está em 13,5 s, precedido de uma colcheia de silêncio.
-- **Fita em código → símbolo oficial**: a curva da fita foi ajustada à arte oficial (erro médio de borda ≈ 2,7 px na arte de 1254 px). No impacto, a fita desenhada está registrada sobre o símbolo e uma máscara circular nascida do cruzamento revela o arquivo oficial, que permanece intacto até o fim. “Entrellun” e “Gente e Gestão” são recortes do mesmo arquivo da logo — nenhuma letra foi redesenhada.
+- **Fita em código → símbolo oficial**: a curva da fita foi ajustada à arte oficial (série de Fourier com 5 harmônicas; erro médio de borda ≈ 3,1 px na arte de 1254 px). No impacto, a fita desenhada está registrada sobre o símbolo e uma máscara circular nascida do cruzamento revela o arquivo oficial, que permanece intacto até o fim. “Entrellun” e “Gente e Gestão” são recortes do mesmo arquivo da logo — nenhuma letra foi redesenhada.
 - **Paleta**: fundo `#061A4F` (com leve gradiente radial no mesmo tom), textos `#F4F7FC`, fita no azul elétrico e nas duas faces da fita oficial, ciano só na passagem por cima do cruzamento (12,75–13,5 s) e coral num único ponto, no primeiro cruzamento (6,4–7,2 s).
+
+## Verificação do render final
+
+- `ffprobe`: H.264 1080 × 1920, 60/1 fps, 1080 quadros, 18,000 s; AAC 48 kHz estéreo, 18,000 s.
+- Trilha (`npx hyperframes audio`): ataques na grade de 120 BPM; pico do impacto em 13,51 s; −17,3 LUFS integrado, true peak −1,4 dBFS.
+- `npx hyperframes check`: sem erros de contrato. O verificador de layout acusa sobreposição de texto por volta de 6 s — é a transição intencional em que a fita reta apaga “Pessoas têm potencial” e revela “Gestão dá direção” com máscaras complementares (o verificador não considera máscaras CSS).

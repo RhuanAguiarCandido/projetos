@@ -11,9 +11,11 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 src = np.asarray(Image.open(root / "assets/brand/logo-entrellun-oficial-fundo-escuro.png").convert("RGB")).astype(np.float64)
 B = np.median(np.concatenate([src[:40, :40].reshape(-1, 3), src[-40:, -40:].reshape(-1, 3)]), axis=0)
-up = np.where(src > B, (src - B) / (255.0 - B), (B - src) / np.maximum(B, 1))
-a = np.clip(up.max(axis=2), 0, 1)
-a[a < 0.035] = 0  # ruído de compressão do fundo
+up = np.where(src > B, (src - B) / (255.0 - B), 0.0).max(axis=2)
+# contorno escuro da fita: medido só em verde e azul (o vermelho do fundo vale 5 e amplificaria ruído)
+dn = ((B[1:] - src[..., 1:]) / B[1:]).max(axis=2)
+a = np.clip(np.maximum(up, dn), 0, 1)
+a[a < 0.1] = 0  # piso de ruído de compressão do fundo
 F = B + (src - B) / np.maximum(a, 1e-6)[..., None]
 F = np.clip(F, 0, 255)
 out = np.dstack([F, a * 255]).round().astype(np.uint8)

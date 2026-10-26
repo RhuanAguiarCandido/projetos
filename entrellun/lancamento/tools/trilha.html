@@ -248,14 +248,14 @@ async function renderTrack() {
     const o = ctx.createOscillator(); o.type = 'sine';
     o.frequency.setValueAtTime(96, T); o.frequency.exponentialRampToValueAtTime(37, T + 0.7);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, T); g.gain.exponentialRampToValueAtTime(0.62, T + 0.006);
+    g.gain.setValueAtTime(0.0001, T); g.gain.exponentialRampToValueAtTime(0.5, T + 0.006);
     g.gain.exponentialRampToValueAtTime(0.001, T + 2.0);
     o.connect(g); out(g, 1); o.start(T); o.stop(T + 2.05);
     // corpo
     const b = noise(T, T + 0.4);
     const blp = ctx.createBiquadFilter(); blp.type = 'lowpass'; blp.frequency.value = 420;
     const bg = ctx.createGain();
-    bg.gain.setValueAtTime(0.0001, T); bg.gain.exponentialRampToValueAtTime(0.55, T + 0.004);
+    bg.gain.setValueAtTime(0.0001, T); bg.gain.exponentialRampToValueAtTime(0.42, T + 0.004);
     bg.gain.exponentialRampToValueAtTime(0.001, T + 0.3);
     b.connect(blp).connect(bg); out(bg, 1, 0, 0.5);
     // ataque curto e brilhante
@@ -266,7 +266,7 @@ async function renderTrack() {
     hg.gain.exponentialRampToValueAtTime(0.0005, T + 0.09);
     h.connect(hhp).connect(hg); out(hg, 1, 0, 0.6);
   }
-  kick(T, 0.6);
+  kick(T, 0.5);
   sub(T, DUR + 0.3, N.D1, 0.34, 0.01, 1.5);
   pad(T, DUR + 0.3, [N.D2, N.A2, N.D3, N.Fs3, N.A3, N.D4, N.Fs4], 0.3, 3600, 1100, 0.02, 1.0, 0.5);
   pluck(T, N.D5, 0.2, 2.0);

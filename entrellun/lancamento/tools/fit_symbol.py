@@ -6,6 +6,7 @@ símbolo oficial no momento da revelação. Saída: assets/data/simbolo.js
 Uso: python3 -I tools/fit_symbol.py
 """
 import json
+import os
 import numpy as np
 from PIL import Image
 from pathlib import Path
@@ -17,7 +18,7 @@ mask = a > 0.5
 mask[670:] = False
 edge = mask ^ ndimage.binary_erosion(mask)
 dt = ndimage.distance_transform_edt(~edge)
-K = 7
+K = int(os.environ.get("HARMONICAS", 5))  # nº de harmônicas da série de Fourier
 CX, CY = 624.5, 506.5
 
 
@@ -78,7 +79,7 @@ data = ({
     "uCruzamento": sorted([float(uu[i]), float(uu[j])]),
     "caixas": {"simbolo": [244, 354, 1005, 659], "entrellun": [105, 685, 1171, 899], "genteGestao": [250, 917, 1019, 995]},
 })
-(root / "assets/data/simbolo.js").write_text("window.SIMBOLO = " + json.dumps(data) + ";\n")
+Path(os.environ.get("SAIDA", root / "assets/data/simbolo.js")).write_text("window.SIMBOLO = " + json.dumps(data) + ";\n")
 
 im = Image.open(root / "assets/brand/logo-entrellun-oficial-fundo-escuro.png").convert("RGB")
 from PIL import ImageDraw
@@ -90,4 +91,4 @@ for s in (1, -1):
     pp = list(zip(x - s * h * dy / n, y + s * h * dx / n)); d.line(pp + [pp[0]], fill=(55, 213, 242), width=2)
 d.ellipse([x[0] - 8, y[0] - 8, x[0] + 8, y[0] + 8], outline="yellow", width=3)
 d.ellipse([x[60] - 6, y[60] - 6, x[60] + 6, y[60] + 6], outline="red", width=3)
-im.crop((200, 320, 1050, 700)).save("/tmp/claude-0/fit_check.png")
+im.crop((200, 320, 1050, 700)).save(os.environ.get("CONFERENCIA", "/tmp/fit_check.png"))

@@ -104,7 +104,7 @@ mR = reverb(music + fx * 0.6, seed=2) + fx * 0.4
 vo_times = [0.50, 4.45, 8.35, 12.05, 13.65, 15.15, 17.60, 21.00, 22.35]
 vo = np.zeros(N)
 for i, st in enumerate(vo_times):
-    x, sr = sf.read(os.path.join(D, f'vo_{i}.wav')); assert sr == SR
+    x, sr = sf.read(os.path.join(os.environ.get('VO_DIR', D), f'vo_{i}.wav')); assert sr == SR
     add(vo, x / (np.abs(x).max() + 1e-9) * 0.7, st)
 # gentle presence: light reverb on voice
 vo_rv = reverb(vo, secs=0.8, wet=0.08, seed=3)
@@ -119,6 +119,6 @@ fade = np.clip((DUR - t) / 0.6, 0, 1); fade_in = np.clip(t / 0.15, 0, 1)
 L = (mL * 0.55 * duck + vo_rv) * fade * fade_in
 R = (mR * 0.55 * duck + vo_rv) * fade * fade_in
 st = np.stack([L, R], 1); st /= np.abs(st).max() / 0.89
-sf.write(os.path.join(D, 'mix.wav'), st, SR)
+sf.write(os.path.join(D, os.environ.get('OUT', 'mix.wav')), st, SR)
 sf.write(os.path.join(D, 'music_only.wav'), np.stack([mL, mR], 1) / np.abs(np.stack([mL, mR], 1)).max() * 0.8, SR)
 print('ok')

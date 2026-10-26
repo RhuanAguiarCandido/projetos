@@ -57,4 +57,7 @@ Tudo é determinístico: cada quadro do filme é função apenas do tempo da tim
 
 ## Verificação do render final
 
-(preenchida após o render)
+- `ffprobe`: H.264 1080 × 1920, 60/1 fps, 1080 quadros, 18,000 s; AAC 48 kHz estéreo, 18,000 s.
+- `npx hyperframes beats`: 119,9 BPM, 36 batidas no trecho, todas a ≈35–45 ms de múltiplos de 0,5 s do filme.
+- `npx hyperframes audio` no MP4 final: ataques em 1,53 · 5,525 · 9,52 · 11,015 · 11,765 · 12,515 · 13,015 · 13,265 · 13,51 · 14,015 · 14,51 · 15,01 s — cada um 10–30 ms (≈1 quadro) depois do evento visual correspondente. −16,8 LUFS integrado, true peak −3,6 dBFS, sem clipping.
+- `npx hyperframes check`: sem erros de contrato. O verificador de layout acusa sobreposição de texto em 5,5 s — é a transição intencional em que a ponta da fita reta apaga “Pessoas têm potencial” e escreve “Gestão dá direção” com máscaras complementares (o verificador não considera máscaras CSS).

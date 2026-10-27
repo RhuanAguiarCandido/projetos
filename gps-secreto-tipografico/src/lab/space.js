@@ -1,0 +1,10 @@
+import * as THREE from 'three';
+import { Space, loadLand } from '../world/space.js';
+const q = new URLSearchParams(location.search); const W = +q.get('w') || 540, H = +q.get('h') || 960;
+const canvas = document.getElementById('c'); canvas.width = W; canvas.height = H;
+const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H, false);
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#04071A');
+const land = await loadLand(); const sp = new Space(land); scene.add(sp.group); sp.update(3.0, H / (2 * Math.tan(16 * Math.PI / 180)));
+sp.fieldMat.uniforms.uDraw.value = 1.2; 
+const cam = new THREE.PerspectiveCamera(32, W / H, 0.1, 400); cam.position.set(2.2, 1.3, 6.6); cam.lookAt(0, 0, 0);
+r.render(scene, cam); window.__info = { n: sp.land.geometry.attributes.position.count };

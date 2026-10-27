@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>O GPS secreto dos cachorros</title>
+<style>html,body{margin:0;background:#0B1024;overflow:hidden}canvas{display:block;width:100vw;height:auto;max-height:100vh}</style>
+<canvas id="c"></canvas>
+<script type="importmap">{"imports":{
+ "three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/",
+ "gsap":"/node_modules/gsap/index.js","gsap/":"/node_modules/gsap/","opentype.js":"/node_modules/opentype.js/dist/opentype.mjs"}}</script>
+<script type="module">
+  import { init } from '/src/main.js';
+  window.__err = null;
+  try { await init(); window.__ready = true; } catch (e) { window.__err = String(e && e.stack || e); console.error(window.__err); }
+</script>

@@ -1,0 +1,12 @@
+import * as THREE from 'three';
+import { loadTypeface } from '../kit/text.js';
+import { Compass, DogField } from '../world/compass.js';
+const q = new URLSearchParams(location.search); const W = +q.get('w') || 540, H = +q.get('h') || 960;
+const canvas = document.getElementById('c'); canvas.width = W; canvas.height = H;
+const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H, false);
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#0B1024');
+const anton = await loadTypeface('/assets/fonts/Anton-Regular.ttf', 'Anton');
+const c = new Compass(anton); scene.add(c.group); c.update(1.2, 0.4);
+const f = new DogField(); f.group.scale.setScalar(1); scene.add(f.group); f.update(1.0, { count: 70, align: +q.get('al') || 0.0, hist: +q.get('hi') || 0 });
+const cam = new THREE.PerspectiveCamera(32, W / H, 0.1, 100); cam.position.set(0, 7.4, 1.6); cam.lookAt(0, 0, 0);
+r.render(scene, cam); window.__info = {};

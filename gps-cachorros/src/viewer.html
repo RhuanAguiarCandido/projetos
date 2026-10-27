@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { Dog } from './dog.js';
+import { lightU } from './fur.js';
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') || 540), Hh = +(q.get('h') || 960);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, Hh);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#2a6f8f');
+const ground = new THREE.Mesh(new THREE.CircleGeometry(20, 48), new THREE.MeshStandardMaterial({ color: '#3f9a3a', roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const key = new THREE.DirectionalLight('#ffe7b0', 2.2); key.position.copy(lightU.uKeyDir.value).multiplyScalar(5); scene.add(key);
+const rim = new THREE.DirectionalLight('#00d9f5', 2.4); rim.position.copy(lightU.uRimDir.value).multiplyScalar(5); scene.add(rim);
+scene.add(new THREE.HemisphereLight('#9fe3ff', '#3c8a3a', 0.9));
+const dog = new Dog(); scene.add(dog.root);
+const pose = JSON.parse(q.get('pose') || '{}'); dog.setPose(pose);
+const az = +(q.get('az') || 0) * Math.PI / 180, el = +(q.get('el') || 8) * Math.PI / 180, dist = +(q.get('d') || 3.4);
+const tgt = (q.get('t') || '0,0.8,0.1').split(',').map(Number);
+const cam = new THREE.PerspectiveCamera(+(q.get('fov') || 32), W / Hh, 0.05, 100);
+cam.position.set(tgt[0] + Math.sin(az) * Math.cos(el) * dist, tgt[1] + Math.sin(el) * dist, tgt[2] + Math.cos(az) * Math.cos(el) * dist);
+cam.lookAt(tgt[0], tgt[1], tgt[2]);
+lightU.uTime.value = 1.0;
+const t0 = performance.now(); renderer.render(scene, cam); renderer.getContext().finish();
+window.__ms = performance.now() - t0; window.__done = true;
+</script>

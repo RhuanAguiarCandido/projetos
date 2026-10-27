@@ -1,0 +1,8 @@
+node_modules/
+assets/models/
+render/seg/
+render/logs/
+render/*.txt
+audio/build/*.wav
+entrega/o-gps-secreto-dos-cachorros_9x16_1080x1920_30fps.mp4
+render/finalize.log

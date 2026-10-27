@@ -1,0 +1,13 @@
+{
+  "name": "gps-secreto-dos-cachorros",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Motion graphics 9:16 — O GPS secreto dos cachorros (Three.js + Canvas 2D, render determinístico quadro a quadro)",
+  "scripts": {
+    "serve": "node tools/serve.cjs",
+    "audio": "python3 -I audio/build_audio.py",
+    "render": "node tools/render.cjs"
+  },
+  "dependencies": { "three": "0.170.0" }
+}

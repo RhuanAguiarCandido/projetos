@@ -12,9 +12,9 @@ export function build(ctx) {
   const { tl, tf, G, hud, dog, park } = ctx; const P = G.park;
   // 2A — título atrás do cão que gira
   const L = new Lockup(tf.anton, [
-    { text: 'POR QUE', width: 1.25, colorA: '#BFD9FF', colorB: '#FFFFFF' },
+    { text: 'POR QUE', width: 1.25, colorA: '#E6F0FF', colorB: '#FFFFFF' },
     { text: 'TANTAS', width: 1.62, colorA: '#E8A200', colorB: '#FFE680', rim: '#FFF3B0', emis: '#2A1C00' },
-    { text: 'VOLTAS?', width: 1.7, colorA: '#00B5D6', colorB: '#8CF6FF', rim: '#C8FBFF', emis: '#00323F' }], { gap: 0.09, depth: 0.18, rim: '#00D9F5', emis: '#04101E' });
+    { text: 'VOLTAS?', width: 1.7, colorA: '#CFE4FF', colorB: '#FFFFFF', rim: '#00D9F5', emis: '#04101E' }], { gap: 0.09, depth: 0.18, rim: '#00D9F5', emis: '#04101E' });
   L.group.position.set(0, 2.75, -2.0); P.add(L.group); ctx.reg(L.all); vis(tl, L.group, 5.0, 7.55);
   enter(tl, L.blocks[0], 5.0, { style: 'rise', stagger: 0.045, dur: 0.6 }); ev(5.0, 'slam', 1);
   enter(tl, L.blocks[1], 5.5, { style: 'rise', stagger: 0.05, dur: 0.6 }); ev(5.5, 'slam', 1);
@@ -24,7 +24,7 @@ export function build(ctx) {
 
   // 2B — texto em anel no chão, visto de cima
   const R = 1.5, txt = 'TANTAS VOLTAS?  ·  TANTAS VOLTAS?  ·  ', lay = tf.anton.layout(txt, 0.02); const size = (TAU * R) / lay.width;
-  const ring = new TextBlock(tf.anton, txt, { size, depth: 0.05, bevel: 0.006, tracking: 0.02, colorA: '#00B5D6', colorB: '#8CF6FF', emis: '#003B4A', rim: '#C8FBFF', amb: 0.9 });
+  const ring = new TextBlock(tf.anton, txt, { size, depth: 0.05, bevel: 0.006, tracking: 0.02, colorA: '#E8A200', colorB: '#FFE680', emis: '#2A1C00', rim: '#FFF3B0', amb: 0.9 });
   const rg = new THREE.Group(); rg.add(ring.group); P.add(rg); ring.group.position.y = 0.03;
   ring.glyphs.forEach((g, i) => { const phi = g.cx / R - (lay.width * size) / (2 * R) * 0; const m = g.mesh; ring.lines[0].group.position.y = 0; m.position.set(Math.sin(phi) * R, 0, -Math.cos(phi) * R); m.rotation.order = 'YXZ'; m.rotation.set(-Math.PI / 2, -phi, 0); });
   ctx.reg(ring.glyphs); vis(tl, rg, 7.5, 10.05);
@@ -38,7 +38,7 @@ export function build(ctx) {
   ctx.updaters.push((t) => { tg.visible = t >= 5.4 && t < 11.0; if (tg.visible) { tg.rotation.y = theta(t) - Math.PI / 2; trailMat.uniforms.uOp.value = smooth((t - 5.4) / 0.4) * smooth((10.6 - t) / 0.8) * Math.min(1, Math.abs(omegaAt(t)) / 3); } });
   ctx.updaters.push((t) => { park.ground.material.uniforms.uWorn.value = smooth((t - 6.2) / 2.5); });
   // contador de voltas (HUD)
-  const label = new TextBlock(tf.mont, 'VOLTAS', { size: 44, depth: 0, colorA: '#9EEFFF', flat: 1, blend: true, tracking: 0.12 }); label.group.position.set(-290, 585, 0); hud.add(label.group, 6); vis(tl, label.group, 7.6, 10.0); ctx.reg(label.glyphs.map((g) => g.mesh), true);
+  const label = new TextBlock(tf.mont, 'VOLTAS', { size: 44, depth: 0, colorA: '#FFFFFF', flat: 1, blend: true, tracking: 0.12 }); label.group.position.set(-290, 585, 0); hud.add(label.group, 6); vis(tl, label.group, 7.6, 10.0); ctx.reg(label.glyphs.map((g) => g.mesh), true);
   const digs = [1, 2, 3, 4, 5].map((n) => { const b = new TextBlock(tf.anton, String(n), { size: 200, depth: 0, colorA: '#F9D548', colorB: '#FFF3B0', flat: 1, blend: true }); b.group.position.set(-290, 470, 0); hud.add(b.group, 6); b.group.visible = false; ctx.reg(b.glyphs.map((g) => g.mesh), true); return b; });
   const cross = []; for (let tt = 5.0; tt < 12; tt += 1 / 120) { const a = Math.floor(theta(tt + 1 / 120) / TAU), b = Math.floor(theta(tt) / TAU); if (a > b) cross.push([tt, a]); }
   cross.forEach(([tt, n]) => { ev(tt, 'spin', Math.min(1, 0.6 + n * 0.1)); });

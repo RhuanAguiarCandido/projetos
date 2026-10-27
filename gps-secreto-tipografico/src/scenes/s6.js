@@ -10,9 +10,9 @@ import { TAU, smooth, hash1, BRAND } from '../kit/util.js';
 export function build(ctx) {
   const { tl, tf, G, hud } = ctx; const PK = G.park;
   const L = new Lockup(tf.anton, [
-    { text: 'VOCÊ JÁ', width: 1.35, colorA: '#BFD9FF', colorB: '#FFFFFF' },
+    { text: 'VOCÊ JÁ', width: 1.35, colorA: '#E6F0FF', colorB: '#FFFFFF' },
     { text: 'PERCEBEU', width: 1.78, colorA: '#E8A200', colorB: '#FFE680', rim: '#FFF3B0', emis: '#2A1C00' },
-    { text: 'ISSO?', width: 1.3, colorA: '#00B5D6', colorB: '#8CF6FF', rim: '#C8FBFF', emis: '#00323F' }], { gap: 0.09, depth: 0.2, rim: '#00D9F5', emis: '#04101E' });
+    { text: 'ISSO?', width: 1.3, colorA: '#CFE4FF', colorB: '#FFFFFF', rim: '#00D9F5', emis: '#04101E' }], { gap: 0.09, depth: 0.2, rim: '#00D9F5', emis: '#04101E' });
   L.group.position.set(0, 2.95, -1.4); PK.add(L.group); ctx.reg(L.all); vis(tl, L.group, 39.0, 45.2);
   enter(tl, L.blocks[0], 39.0, { style: 'spin', stagger: 0.05, dur: 0.6 }); ev(39.0, 'slam', 1);
   enter(tl, L.blocks[1], 39.5, { style: 'slam', stagger: 0.04, dur: 0.6, dz: 2.0 }); ev(39.5, 'slam', 1);
@@ -33,7 +33,7 @@ export function build(ctx) {
   tl.set(L.group.scale, { x: 0.62, y: 0.62, z: 0.62 }, 42.2); tl.set(L.group.position, { y: 2.75 }, 42.2);
   addSub(ctx, [{ t: 'Conta' }, { t: 'nos' }, { t: 'comentários', pill: true }], 42.4, 44.6, { stagger: 0.1, y: 80 });
   ev(42.4, 'tick', 1);
-  const cred = subline(tf.mont7, [{ t: 'Fonte: Hart et al. (2013), Frontiers in Zoology', c: '#9EEFFF' }], { size: 30, maxW: 980 }); cred.position.set(0, -450, 0); hud.add(cred); ctx.reg(cred.userData.blocks.map((b) => b.tb.group), true); sublineIn(tl, cred, 42.6); sublineOut(tl, cred, 44.8);
+  const cred = subline(tf.mont7, [{ t: 'Fonte: Hart et al. (2013), Frontiers in Zoology', c: '#9EEFFF' }], { size: 30, maxW: 980 }); cred.position.set(0, -400, 0); hud.add(cred); ctx.reg(cred.userData.blocks.map((b) => b.tb.group), true); sublineIn(tl, cred, 42.6); sublineOut(tl, cred, 44.8);
   // fade final para o azul-marinho (loop limpo)
   tl.fromTo(ctx.fadeOut, { v: 0 }, { v: 1, duration: 0.45, ease: 'power2.in', immediateRender: false }, 44.55);
   ev(44.55, 'outro', 1);

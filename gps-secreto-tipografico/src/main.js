@@ -19,7 +19,7 @@ const W = +q.get('w') || 1080, H = +q.get('h') || 1920, SS = +q.get('ss') || 4;
 const SHUTTER = 0.5, MAXN = +q.get('maxn') || 5;
 
 const LOOKS = {
-  park: { keyDir: [0.5, 0.65, 0.55], rimDir: [-0.35, 0.3, -0.9], keyCol: '#FFE9C4', rimCol: '#2FD8FF', rimAmt: 0.9, fogCol: '#1E5F86', fogDen: 0.014 },
+  park: { keyDir: [0.45, 0.75, 0.5], rimDir: [-0.5, 0.4, -0.8], keyCol: '#FFF1D6', rimCol: '#8CCBFF', rimAmt: 0.45, fogCol: '#A9CFF7', fogDen: 0.011 },
   space: { keyDir: [0.5, 0.55, 0.7], rimDir: [-0.6, 0.2, -0.8], keyCol: '#FFF4DD', rimCol: '#00D9F5', rimAmt: 1.1, fogCol: '#0A1030', fogDen: 0.0 },
   stage: { keyDir: [0.35, 0.8, 0.55], rimDir: [-0.5, 0.25, -0.85], keyCol: '#FFF1D0', rimCol: '#00D9F5', rimAmt: 1.3, fogCol: '#0B1024', fogDen: 0.02 },
 };
@@ -33,7 +33,7 @@ export async function init() {
   const mont7 = await loadTypeface('/assets/fonts/Montserrat-700.ttf', 'Montserrat700');
   const land = await loadLand();
 
-  const ctx = new Ctx(); ctx.W = W; ctx.H = H; ctx.engine = engine; ctx.tf = { anton, mont, mont7 };
+  const ctx = new Ctx(); ctx.land = land; ctx.W = W; ctx.H = H; ctx.engine = engine; ctx.tf = { anton, mont, mont7 };
   const scene = new THREE.Scene(); ctx.scene = scene;
   const camera = new THREE.PerspectiveCamera(36, W / H, 0.05, 500); ctx.camera = camera;
   ctx.hud = new Hud(1080, 1920);

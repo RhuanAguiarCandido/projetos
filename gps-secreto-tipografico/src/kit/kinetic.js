@@ -17,7 +17,7 @@ export class Lockup {
     this.group = new THREE.Group(); this.blocks = []; const gap = o.gap ?? 0.12; let y = 0; const items = [];
     for (const L of lines) {
       const size = L.size ?? fitSize(tf, L.text, L.width, L.tracking ?? 0);
-      const b = new TextBlock(tf, L.text, { size, depth: L.depth ?? o.depth ?? 0.14, bevel: o.bevel ?? 0.012, colorA: L.colorA ?? o.colorA ?? '#FFFFFF', colorB: L.colorB ?? L.colorA ?? o.colorB ?? o.colorA ?? '#FFFFFF', emis: L.emis ?? o.emis ?? '#000000', rim: L.rim ?? o.rim ?? '#00D9F5', amb: L.amb ?? o.amb ?? 0.6, spec: L.spec ?? o.spec ?? 0.25, tracking: L.tracking ?? 0 });
+      const b = new TextBlock(tf, L.text, { size, depth: L.depth ?? o.depth ?? 0.14, bevel: o.bevel ?? 0.012, colorA: L.colorA ?? o.colorA ?? '#FFFFFF', colorB: L.colorB ?? L.colorA ?? o.colorB ?? o.colorA ?? '#FFFFFF', emis: L.emis ?? o.emis ?? '#000000', rim: L.rim ?? o.rim ?? '#00D9F5', amb: L.amb ?? o.amb ?? 0.8, spec: L.spec ?? o.spec ?? 0.25, tracking: L.tracking ?? 0 });
       items.push({ b, h: b.height }); this.blocks.push(b);
     }
     const total = items.reduce((a, i) => a + i.h, 0) + gap * (items.length - 1); let cy = total / 2;

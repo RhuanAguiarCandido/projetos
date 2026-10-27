@@ -1,16 +1,18 @@
-// Golden retriever 3D estilizado ("mascote"): formas suaves, toon shading, contorno, tufos instanciados e rig completo.
+// Golden retriever 3D (estilo "CG animado"): formas suaves, sombreamento em rampa suave, contorno fino, pelagem de mechas instanciadas
+// (sombreadas pelo eixo, para parecer um casaco contínuo), focinho longo, orelhas caídas e rig completo.
 import * as THREE from 'three';
-import { toonMaterial, outlineMaterial, ellipsoid, toonMesh, tuftSet, STAGE } from './toon.js';
+import { toonMaterial, outlineMaterial, ellipsoid, toonMesh, tuftSet, furOn, STAGE } from './toon.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { col, clamp } from '../kit/util.js';
 
-const GOLD = { base: '#EE9F26', shade: '#A9540F', light: '#FFC24F' };
-const CREAM = { base: '#FFE0A0', shade: '#E2B56C', light: '#FFF2D0' };
-const EAR = { base: '#DB8A1C', shade: '#9E4F0C', light: '#F5B046' };
-const SNOUT = { base: '#A9651E', shade: '#6F3A0D', light: '#C98532' };
-const BROW = { base: '#FFC651', shade: '#D58B22', light: '#FFE49A' };
+const GOLD = { base: '#E39A3A', shade: '#A9581A', light: '#F8C46E' };
+const CREAM = { base: '#F1C887', shade: '#D49C58', light: '#FFE2A8' };
+const EAR = { base: '#C98230', shade: '#8A4912', light: '#E8A64E' };
+const SNOUT = { base: '#B9783A', shade: '#7A4418', light: '#D79A55' };
+const BROW = { base: '#F2B654', shade: '#C98530', light: '#FFD684' };
 const PINK = { base: '#FF7C9A', shade: '#D84A6E', light: '#FFB0C3' };
-const OUT = '#7A400C';
+const OUT = '#8A4C16';
+const SOFT = { soft: 0.2, bandA: 0.36, bandB: 0.78 };
 
 function onEllipsoid(rx, ry, rz, thetas, phis) {
   const P = [], N = [];
@@ -20,7 +22,6 @@ function onEllipsoid(rx, ry, rz, thetas, phis) {
   }
   return [P, N];
 }
-
 
 // tronco único (uma malha, um contorno): perfil de raios ao longo de z
 function torsoGeometry() {
@@ -35,41 +36,51 @@ export class Dog {
   constructor() {
     this.root = new THREE.Group(); this.fills = []; this.outlines = [];
     const reg = (g) => { if (g.userData.fill) this.fills.push(g.userData.fill); if (g.userData.outline) this.outlines.push(g.userData.outline); return g; };
-    const part = (parent, geo, matOpts, pos, outline = { width: 2.5, color: OUT }) => { const g = reg(toonMesh(geo, matOpts, outline)); g.position.set(...pos); parent.add(g); return g; };
+    const part = (parent, geo, matOpts, pos, outline = { width: 1.3, color: OUT }) => { const g = reg(toonMesh(geo, { ...SOFT, ...matOpts }, outline)); g.position.set(...pos); parent.add(g); return g; };
+    // pelo sobre uma geometria: mesmas coordenadas locais da peça => mesmo gradiente de cor
+    const fur = (parent, geo, pos, count, matOpts, o) => { const m = furOn(geo, count, { palette: matOpts.palette, palette2: matOpts.palette2, gradDir: matOpts.gradDir, gradRange: matOpts.gradRange, ...o }); m.position.set(...pos); parent.add(m); return m; };
 
     // ---------------- corpo ----------------
     this.body = new THREE.Group(); this.root.add(this.body);
-    part(this.body, torsoGeometry(), { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0.6], gradRange: [-0.50, -0.40] }, [0, 0, 0]);
-    part(this.body, ellipsoid(0.23, 0.26, 0.21), { palette: GOLD, palette2: CREAM, gradDir: [0, 0, 1], gradRange: [0.0, 0.17] }, [0, 0.88, 0.31]);   // pescoço/ruff
-    // peitoral: tufos cremosos
-    { const [P, N] = onEllipsoid(0.27, 0.30, 0.25, [1.35, 1.65, 1.95], [0.7, 1.05, 1.4, 1.75, 2.1, 2.45]); P.forEach((p) => p.add(new THREE.Vector3(0, 0.63, 0.30)));
-      this.body.add(tuftSet(P, N, { palette: CREAM, h: 0.12, w: 0.055, sweep: [0, -1.1, 0.1] })); }
+    const torsoG = torsoGeometry(); const torsoM = { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0.3], gradRange: [-0.48, -0.37] };
+    part(this.body, torsoG, torsoM, [0, 0, 0]);
+    fur(this.body, torsoG, [0, 0, 0], 1100, torsoM, { h: 0.07, w: 0.024, sweep: [0, -0.35, -0.8], seed: 3 });
+    const ruffG = ellipsoid(0.23, 0.27, 0.22); const ruffM = { palette: GOLD, palette2: CREAM, gradDir: [0, 0, 1], gradRange: [0.0, 0.17] };
+    part(this.body, ruffG, ruffM, [0, 0.88, 0.31]);   // pescoço
+    fur(this.body, ruffG, [0, 0.88, 0.31], 260, ruffM, { h: 0.1, w: 0.032, sweep: [0, -0.6, -0.5], seed: 5 });
+    // peitoral: mechas longas e claras
+    { const [P, N] = onEllipsoid(0.27, 0.30, 0.25, [1.25, 1.45, 1.65, 1.85, 2.05, 2.25], [0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.65]); P.forEach((p) => p.add(new THREE.Vector3(0, 0.63, 0.30)));
+      this.body.add(tuftSet(P, N, { palette: CREAM, h: 0.1, w: 0.03, sweep: [0, -1.2, 0.1], seed: 9 })); }
 
     // ---------------- pescoço/cabeça ----------------
     this.neck = new THREE.Group(); this.neck.position.set(0, 0.93, 0.34); this.body.add(this.neck);
     this.head = new THREE.Group(); this.head.position.set(0, 0.21, 0.12); this.neck.add(this.head);
     const H = this.head;
-    part(H, ellipsoid(0.35, 0.31, 0.31, 32, 22), { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [0.25, 0.34] }, [0, 0, 0]);
-    for (const s of [1, -1]) part(H, ellipsoid(0.15, 0.125, 0.15), { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [-0.02, 0.1] }, [0.2 * s, -0.10, 0.06]);
-    // bochechas: tufos macios
-    for (const s of [1, -1]) { const [P, N] = onEllipsoid(0.15, 0.125, 0.15, [1.4, 1.8, 2.2], [0.4, 0.9, 1.4]); P.forEach((p) => { p.x = p.x * s + 0.2 * s; p.y -= 0.10; p.z += 0.06; }); N.forEach((n) => { n.x *= s; });
-      H.add(tuftSet(P, N, { palette: CREAM, h: 0.075, w: 0.04, sweep: [0.3 * s, -0.8, 0] })); }
-    // focinho (ponta escura) + nariz
-    this.muzzle = part(H, ellipsoid(0.155, 0.118, 0.205, 28, 20), { palette: GOLD, palette2: SNOUT, gradDir: [0, 0, 1], gradRange: [0.12, 0.2] }, [0, -0.07, 0.29]);
-    this.nose = part(H, ellipsoid(0.082, 0.056, 0.06, 20, 14), { palette: { base: '#2A1710', shade: '#150A06', light: '#4A2E22' }, spec: 0.9, bandA: 0.2, bandB: 0.8 }, [0, -0.016, 0.495], { width: 1.8, color: '#150A06' });
-    for (const s of [1, -1]) { const nm = new THREE.Mesh(ellipsoid(0.014, 0.01, 0.012, 8, 6), new THREE.MeshBasicMaterial({ color: '#000000' })); nm.position.set(0.034 * s, -0.026, 0.548); H.add(nm); }
+    const skullG = ellipsoid(0.35, 0.31, 0.31, 32, 22); const skullM = { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [0.25, 0.34] };
+    part(H, skullG, skullM, [0, 0, 0]);
+    fur(H, skullG, [0, 0, 0], 300, skullM, { h: 0.055, w: 0.024, sweep: [0, 0.1, -0.9], seed: 13, filter: (x, y, z, nx, ny, nz) => nz < 0.35 && y > -0.12 });
+    const cheekG = ellipsoid(0.15, 0.125, 0.15); const cheekM = { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [-0.02, 0.1] };
+    for (const s of [1, -1]) {
+      part(H, cheekG, cheekM, [0.2 * s, -0.10, 0.06]);
+      const [P, N] = onEllipsoid(0.15, 0.125, 0.15, [1.5, 1.9, 2.3], [0.4, 0.9, 1.4]); P.forEach((p) => { p.x = p.x * s + 0.2 * s; p.y -= 0.10; p.z += 0.06; }); N.forEach((n) => { n.x *= s; });
+      H.add(tuftSet(P, N, { palette: CREAM, h: 0.085, w: 0.035, sweep: [0.3 * s, -0.9, -0.2], seed: 15 }));
+    }
+    // focinho longo (ponta mais escura) + nariz
+    this.muzzle = part(H, ellipsoid(0.15, 0.118, 0.255, 28, 20), { palette: GOLD, palette2: SNOUT, gradDir: [0, 0, 1], gradRange: [0.14, 0.24] }, [0, -0.075, 0.325]);
+    this.nose = part(H, ellipsoid(0.082, 0.056, 0.062, 20, 14), { palette: { base: '#2A1710', shade: '#150A06', light: '#4A2E22' }, spec: 0.9, bandA: 0.2, bandB: 0.8 }, [0, -0.02, 0.56], { width: 1.4, color: '#150A06' });
+    for (const s of [1, -1]) { const nm = new THREE.Mesh(ellipsoid(0.014, 0.01, 0.012, 8, 6), new THREE.MeshBasicMaterial({ color: '#000000' })); nm.position.set(0.034 * s, -0.03, 0.614); H.add(nm); }
     this.smileMat = new THREE.MeshBasicMaterial({ color: '#4A220A' });
-    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, -0.045, 0.50), new THREE.Vector3(0, -0.085, 0.495), new THREE.Vector3(0, -0.125, 0.46), new THREE.Vector3(0.075, -0.155, 0.42), new THREE.Vector3(0.14, -0.14, 0.36), new THREE.Vector3(0.175, -0.11, 0.29)]);
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, -0.05, 0.565), new THREE.Vector3(0, -0.09, 0.56), new THREE.Vector3(0, -0.135, 0.53), new THREE.Vector3(0.075, -0.165, 0.48), new THREE.Vector3(0.14, -0.15, 0.40), new THREE.Vector3(0.18, -0.115, 0.31)]);
     this.smile = new THREE.Group(); H.add(this.smile);
     const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 20, 0.0065, 5, false), this.smileMat), tube2 = new THREE.Mesh(tube.geometry, this.smileMat); tube2.scale.x = -1; this.smile.add(tube, tube2);
     // mandíbula, boca, língua
-    this.jaw = new THREE.Group(); this.jaw.position.set(0, -0.115, 0.14); H.add(this.jaw);
-    const mouth = new THREE.Mesh(ellipsoid(0.098, 0.03, 0.17, 18, 10), new THREE.MeshBasicMaterial({ color: '#5A1426' })); mouth.position.set(0, 0.03, 0.17); this.jaw.add(mouth);
-    part(this.jaw, ellipsoid(0.108, 0.05, 0.18, 22, 12), { palette: CREAM, palette2: GOLD, gradDir: [0, 1, 0], gradRange: [0.02, 0.05] }, [0, -0.01, 0.17], { width: 2, color: OUT });
-    this.tongue = new THREE.Group(); this.tongue.position.set(0, 0.035, 0.08); this.jaw.add(this.tongue);
-    part(this.tongue, ellipsoid(0.06, 0.016, 0.125, 18, 10, (v) => { v.y += Math.max(0, v.z) * -0.08 * (v.z / 0.125); }), { palette: PINK, spec: 0.5 }, [0, 0, 0.10], { width: 1.6, color: '#A8304E' });
+    this.jaw = new THREE.Group(); this.jaw.position.set(0, -0.12, 0.14); H.add(this.jaw);
+    const mouth = new THREE.Mesh(ellipsoid(0.098, 0.03, 0.21, 18, 10), new THREE.MeshBasicMaterial({ color: '#5A1426' })); mouth.position.set(0, 0.03, 0.2); this.jaw.add(mouth);
+    part(this.jaw, ellipsoid(0.106, 0.05, 0.225, 22, 12), { palette: CREAM, palette2: GOLD, gradDir: [0, 1, 0], gradRange: [0.02, 0.05] }, [0, -0.01, 0.2], { width: 1.3, color: OUT });
+    this.tongue = new THREE.Group(); this.tongue.position.set(0, 0.035, 0.09); this.jaw.add(this.tongue);
+    part(this.tongue, ellipsoid(0.062, 0.017, 0.14, 18, 10, (v) => { v.y += Math.max(0, v.z) * -0.08 * (v.z / 0.14); }), { palette: PINK, spec: 0.5 }, [0, 0, 0.11], { width: 1.2, color: '#A8304E' });
 
-    // olhos grandes e brilhantes
+    // olhos castanhos grandes e brilhantes
     this.eyes = [];
     const irisMat = () => new THREE.ShaderMaterial({
       uniforms: { uSpiral: { value: 0 }, uTime: { value: 0 } }, transparent: false, side: THREE.DoubleSide,
@@ -77,38 +88,39 @@ export class Dog {
       fragmentShader: `precision highp float; varying vec2 vP; uniform float uSpiral, uTime;
         void main(){ float r = length(vP) / 0.066; float a = atan(vP.y, vP.x);
           vec3 c = vec3(0.04, 0.02, 0.01);
-          vec3 ring = mix(vec3(0.42, 0.20, 0.06), vec3(0.88, 0.50, 0.16), smoothstep(0.35, 1.0, r) * (0.7 + 0.3 * sin(a * 9.0)));
-          ring = mix(ring, vec3(0.99, 0.74, 0.34), smoothstep(0.0, 1.0, -vP.y / 0.066 * 0.5 + 0.3) * 0.5);
-          c = mix(c, ring, smoothstep(0.34, 0.42, r));
-          c = mix(c, vec3(0.10, 0.05, 0.02), smoothstep(0.9, 1.0, r));
+          vec3 ring = mix(vec3(0.30, 0.12, 0.03), vec3(0.62, 0.30, 0.08), smoothstep(0.30, 1.0, r) * (0.75 + 0.25 * sin(a * 11.0)));
+          ring = mix(ring, vec3(0.86, 0.52, 0.18), smoothstep(0.0, 1.0, -vP.y / 0.066 * 0.5 + 0.3) * 0.55);
+          c = mix(c, ring, smoothstep(0.30, 0.40, r));
+          c = mix(c, vec3(0.08, 0.04, 0.015), smoothstep(0.9, 1.0, r));
           float sp = step(0.0, sin(a * 2.0 + r * 14.0 - uTime * 12.0));
           c = mix(c, mix(vec3(0.0), vec3(1.0), sp), uSpiral);
           gl_FragColor = vec4(c, 1.0); }`,
     });
     for (const s of [1, -1]) {
-      const eye = new THREE.Group(); eye.position.set(0.148 * s, 0.07, 0.245); eye.rotation.y = 0.10 * s; H.add(eye);
+      const eye = new THREE.Group(); eye.position.set(0.152 * s, 0.085, 0.245); eye.rotation.y = 0.10 * s; H.add(eye);
       const ball = new THREE.Group(); eye.add(ball);
-      const R = 0.09;
+      const R = 0.085;
       const eb = new THREE.Mesh(new THREE.SphereGeometry(R, 24, 16), new THREE.MeshBasicMaterial({ color: '#1F0F07' })); ball.add(eb);
       const iris = new THREE.Mesh(new THREE.CircleGeometry(0.066, 28), irisMat()); iris.position.z = R * 0.98 - 0.004; ball.add(iris);
-      const h1 = new THREE.Mesh(new THREE.CircleGeometry(0.024, 18), new THREE.MeshBasicMaterial({ color: '#FFFFFF' })); h1.position.set(0.026, 0.03, R * 1.0); eye.add(h1);
-      const h2 = new THREE.Mesh(new THREE.CircleGeometry(0.0105, 14), new THREE.MeshBasicMaterial({ color: '#FFFFFF' })); h2.position.set(-0.03, -0.03, R * 1.0); eye.add(h2);
-      const lidO = (a, b, c) => ({ palette: GOLD, bandA: 0.3, bandB: 0.8 });
-      const upper = new THREE.Group(); eye.add(upper); upper.add(part(upper, new THREE.SphereGeometry(R * 1.1, 24, 12, 0, Math.PI * 2, 0, 1.5708), lidO(), [0, 0, 0], { width: 1.6, color: OUT }));
-      const lower = new THREE.Group(); eye.add(lower); lower.add(part(lower, new THREE.SphereGeometry(R * 1.09, 24, 10, 0, Math.PI * 2, Math.PI - 0.9, 0.9), lidO(), [0, 0, 0], { width: 1.4, color: OUT }));
+      const h1 = new THREE.Mesh(new THREE.CircleGeometry(0.022, 18), new THREE.MeshBasicMaterial({ color: '#FFFFFF' })); h1.position.set(0.026, 0.03, R * 1.0); eye.add(h1);
+      const h2 = new THREE.Mesh(new THREE.CircleGeometry(0.0095, 14), new THREE.MeshBasicMaterial({ color: '#FFFFFF' })); h2.position.set(-0.03, -0.03, R * 1.0); eye.add(h2);
+      const lidO = () => ({ palette: GOLD, bandA: 0.3, bandB: 0.8 });
+      const upper = new THREE.Group(); eye.add(upper); upper.add(part(upper, new THREE.SphereGeometry(R * 1.1, 24, 12, 0, Math.PI * 2, 0, 1.5708), lidO(), [0, 0, 0], { width: 1.2, color: OUT }));
+      const lower = new THREE.Group(); eye.add(lower); lower.add(part(lower, new THREE.SphereGeometry(R * 1.09, 24, 10, 0, Math.PI * 2, Math.PI - 0.9, 0.9), lidO(), [0, 0, 0], { width: 1.1, color: OUT }));
       this.eyes.push({ eye, ball, upper, lower, iris, s });
     }
     // sobrancelhas
     this.brows = [];
-    for (const s of [1, -1]) { const g = new THREE.Group(); g.position.set(0.15 * s, 0.185, 0.215); g.rotation.x = -0.45; H.add(g); part(g, ellipsoid(0.056, 0.02, 0.03, 14, 8), { palette: BROW }, [0, 0, 0], { width: 1.8, color: OUT }); this.brows.push({ g, s }); }
-    // orelhas caídas
+    for (const s of [1, -1]) { const g = new THREE.Group(); g.position.set(0.15 * s, 0.19, 0.215); g.rotation.x = -0.45; H.add(g); part(g, ellipsoid(0.058, 0.02, 0.03, 14, 8), { palette: BROW }, [0, 0, 0], { width: 1.2, color: OUT }); this.brows.push({ g, s }); }
+    // orelhas caídas (mais longas, mais escuras, franjadas)
     this.ears = [];
     for (const s of [1, -1]) {
       const pivot = new THREE.Group(); pivot.position.set(0.30 * s, 0.12, -0.02); H.add(pivot);
       const flap = new THREE.Group(); pivot.add(flap);
-      part(flap, ellipsoid(0.05, 0.225, 0.15, 20, 16, (v, n, x, y) => { const t = (-v.y / 0.225) * 0.5 + 0.5; v.z *= 1 - 0.25 * t; v.x += 0.02 * s * t; }), { palette: EAR, palette2: GOLD, gradDir: [0, 1, 0], gradRange: [0.1, 0.22] }, [0.035 * s, -0.20, 0]);
-      const [P, N] = onEllipsoid(0.05, 0.225, 0.15, [2.3, 2.65], [0.7, 1.6, 2.5, 3.4, 4.3, 5.2]); P.forEach((p) => { p.x += 0.035 * s; p.y -= 0.20; });
-      flap.add(tuftSet(P, N, { palette: GOLD, h: 0.1, w: 0.04, sweep: [0, -1, 0] }));
+      const earG = ellipsoid(0.05, 0.25, 0.16, 20, 16, (v, n, x, y) => { const t = (-v.y / 0.25) * 0.5 + 0.5; v.z *= 1 - 0.3 * t; v.x += 0.02 * s * t; });
+      const earM = { palette: { base: '#D9923A', shade: '#9A5516', light: '#F2B85C' }, palette2: GOLD, gradDir: [0, 1, 0], gradRange: [0.1, 0.24] };
+      part(flap, earG, earM, [0.035 * s, -0.22, 0]);
+      const f = fur(flap, earG, [0.035 * s, -0.22, 0], 170, earM, { h: 0.055, w: 0.02, sweep: [0, -1, 0], seed: 21, filter: (x, y, z, nx, ny, nz) => y < 0.06 }); void f;
       this.ears.push({ pivot, flap, s });
     }
 
@@ -116,13 +128,15 @@ export class Dog {
     this.legs = [];
     const mkLeg = (x, y, z, front) => {
       const hip = new THREE.Group(); hip.position.set(x, y, z); this.body.add(hip);
-      part(hip, front ? ellipsoid(0.098, 0.18, 0.108) : ellipsoid(0.125, 0.21, 0.15), { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [0.02, 0.14] }, [0, front ? -0.14 : -0.12, front ? 0 : -0.02]);
+      const upG = front ? ellipsoid(0.098, 0.18, 0.108) : ellipsoid(0.125, 0.21, 0.15); const upM = { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [0.02, 0.14] }; const upP = [0, front ? -0.14 : -0.12, front ? 0 : -0.02];
+      part(hip, upG, upM, upP);
+      fur(hip, upG, upP, front ? 110 : 170, upM, { h: front ? 0.1 : 0.11, w: 0.032, sweep: [0, -0.9, -0.35], seed: front ? 31 : 37 });
       const knee = new THREE.Group(); knee.position.set(0, front ? -0.29 : -0.27, front ? 0 : 0.03); hip.add(knee);
       part(knee, ellipsoid(0.078, 0.15, 0.084), { palette: CREAM, gradRange: [10, 11] }, [0, -0.12, 0]);
       const paw = new THREE.Group(); paw.position.set(0, -0.25, 0); knee.add(paw);
       part(paw, ellipsoid(0.095, 0.055, 0.125), { palette: CREAM }, [0, 0, 0.035]);
       for (const dx of [-0.04, 0, 0.04]) { const toe = new THREE.Mesh(ellipsoid(0.017, 0.011, 0.02, 8, 6), new THREE.MeshBasicMaterial({ color: '#4A2A14' })); toe.position.set(dx, -0.012, 0.155); paw.add(toe); }
-      if (front) { const [P, N] = onEllipsoid(0.098, 0.18, 0.108, [1.6, 2.0, 2.4], [3.6, 4.1, 4.6, 5.1]); P.forEach((p) => p.add(new THREE.Vector3(0, -0.14, 0))); hip.add(tuftSet(P, N, { palette: CREAM, h: 0.08, w: 0.035, sweep: [0, -0.7, -0.4] })); }
+      if (front) { const [P, N] = onEllipsoid(0.098, 0.18, 0.108, [1.6, 2.0, 2.4], [3.6, 4.1, 4.6, 5.1]); P.forEach((p) => p.add(new THREE.Vector3(0, -0.14, 0))); hip.add(tuftSet(P, N, { palette: CREAM, h: 0.11, w: 0.034, sweep: [0, -0.9, -0.5], seed: 41 })); }
       const leg = { hip, knee, paw, front, side: Math.sign(x) }; this.legs.push(leg); return leg;
     };
     mkLeg(0.155, 0.58, 0.24, true); mkLeg(-0.155, 0.58, 0.24, true); mkLeg(0.175, 0.58, -0.29, false); mkLeg(-0.175, 0.58, -0.29, false);
@@ -131,14 +145,15 @@ export class Dog {
     this.tail = []; let parent = new THREE.Group(); parent.position.set(0, 0.78, -0.50); this.body.add(parent); this.tailRoot = parent;
     for (let i = 0; i < 5; i++) {
       const seg = new THREE.Group(); if (i > 0) seg.position.set(0, 0, -0.15); parent.add(seg);
-      const rx = 0.05 + Math.sin((i + 0.6) / 5 * Math.PI) * 0.05; part(seg, ellipsoid(rx, rx * 1.15, 0.13, 16, 10), { palette: GOLD }, [0, 0, -0.075], { width: 1.6, color: '#A8590F' });
-      const [P, N] = onEllipsoid(rx, rx * 1.15, 0.13, [2.2, 2.6], [1.3, 1.9, 4.4, 5.0]); P.forEach((p) => p.z -= 0.075); seg.add(tuftSet(P, N, { palette: GOLD, h: 0.11, w: 0.045, sweep: [0, -0.9, -1.0] }));
+      const rx = 0.05 + Math.sin((i + 0.6) / 5 * Math.PI) * 0.05; const tG = ellipsoid(rx, rx * 1.15, 0.13, 16, 10);
+      part(seg, tG, { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [-0.06, -0.02] }, [0, 0, -0.075], { width: 1.1, color: '#A8590F' });
+      fur(seg, tG, [0, 0, -0.075], 60, { palette: GOLD, palette2: CREAM, gradDir: [0, -1, 0], gradRange: [-0.06, -0.02] }, { h: 0.15, w: 0.034, sweep: [0, -0.8, -1.1], seed: 51 + i });
       this.tail.push(seg); parent = seg;
     }
 
     // sombra de contato
     const sc = document.createElement('canvas'); sc.width = sc.height = 128; const sg = sc.getContext('2d'); const gr = sg.createRadialGradient(64, 64, 4, 64, 64, 62);
-    gr.addColorStop(0, 'rgba(10,20,40,0.55)'); gr.addColorStop(0.6, 'rgba(10,20,40,0.25)'); gr.addColorStop(1, 'rgba(10,20,40,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
+    gr.addColorStop(0, 'rgba(10,20,40,0.5)'); gr.addColorStop(0.6, 'rgba(10,20,40,0.22)'); gr.addColorStop(1, 'rgba(10,20,40,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
     const st = new THREE.CanvasTexture(sc); st.colorSpace = THREE.SRGBColorSpace;
     this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: st, transparent: true, depthWrite: false }));
     this.shadow.rotation.x = -Math.PI / 2; this.shadow.position.y = 0.015; this.shadow.scale.set(1.3, 1.8, 1); this.shadow.renderOrder = 1; this.root.add(this.shadow);
@@ -167,9 +182,9 @@ export class Dog {
       e.lower.rotation.x = -THREE.MathUtils.smoothstep(c, 0.35, 1.0) * 0.85;
       e.iris.material.uniforms.uSpiral.value = q.dizzy; e.iris.material.uniforms.uTime.value = q.time;
     }
-    for (const b of this.brows) { b.g.position.y = 0.185 + q.brow * 0.045; b.g.rotation.z = b.s * q.browTilt * 0.55 - b.s * 0.08; b.g.rotation.x = -0.45 - q.brow * 0.2; }
+    for (const b of this.brows) { b.g.position.y = 0.19 + q.brow * 0.045; b.g.rotation.z = b.s * q.browTilt * 0.55 - b.s * 0.08; b.g.rotation.x = -0.45 - q.brow * 0.2; }
     this.jaw.rotation.x = q.mouth * 0.55;
-    this.tongue.rotation.x = q.tongue * 0.35; this.tongue.position.z = 0.08 + q.tongue * 0.09; this.tongue.scale.set(1, 1, 0.55 + q.tongue * 0.75);
+    this.tongue.rotation.x = q.tongue * 0.35; this.tongue.position.z = 0.09 + q.tongue * 0.1; this.tongue.scale.set(1, 1, 0.55 + q.tongue * 0.75);
     this.smile.scale.set(1, 1 + (q.smile - 1) * 0.3 - q.mouth * 0.4, 1); this.smile.position.y = -q.mouth * 0.012;
     for (const e of this.ears) { const dyn = e.s > 0 ? q.earR : q.earL; e.flap.rotation.set(-0.05 + dyn * 0.35 - q.earPerk * 0.35, 0, e.s * (0.10 + q.earPerk * 0.55 + dyn * 0.25)); }
     const ph = q.gait, A = q.gaitAmp;

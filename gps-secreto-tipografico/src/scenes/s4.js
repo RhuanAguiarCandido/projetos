@@ -66,7 +66,7 @@ export function build(ctx) {
   enter(tl, LE.blocks[0], 24.6, { style: 'spin', stagger: 0.05, dur: 0.6 }); enter(tl, LE.blocks[1], 25.1, { style: 'slam', stagger: 0.04, dur: 0.6, dz: 1.8 }); ev(24.6, 'slam', 0.9); ev(25.1, 'impact', 1); ev(24.9, 'whoosh', 1);
   flash(tl, LE.blocks[1], 25.15, 0.6, 0.25); glint(tl, LE.blocks[1], 25.7, 0.8); ctx.pulse(25.12, 0.9, 0.4);
   exit(tl, LE.blocks[0], 26.8, { style: 'shrink', stagger: 0.02 }); exit(tl, LE.blocks[1], 26.82, { style: 'shrink', stagger: 0.02 });
-  const tiny = subline(tf.mont7, [{ t: 'gráfico ilustrativo', c: '#9EEFFF' }], { size: 30 }); tiny.position.set(0, -420, 0); hud.add(tiny); ctx.reg(tiny.userData.blocks.map((b) => b.tb.group), true); sublineIn(tl, tiny, 26.2); sublineOut(tl, tiny, 27.0);
+  const tiny = subline(tf.mont7, [{ t: 'gráfico ilustrativo', c: '#9EEFFF' }], { size: 30 }); tiny.position.set(0, -330, 0); hud.add(tiny); ctx.reg(tiny.userData.blocks.map((b) => b.tb.group), true); sublineIn(tl, tiny, 26.2); sublineOut(tl, tiny, 27.0);
 
   // 4C — NORTE / SUL no chão, cão alinhado
   const gtxt = (txt, w, c1, c2, z, rot) => { const b = new TextBlock(tf.anton, txt, { size: w / tf.anton.layout(txt).width, depth: 0.06, bevel: 0.008, colorA: c1, colorB: c2, rim: '#FFFFFF', emis: '#101010', amb: 0.9 }); b.group.rotation.x = -Math.PI / 2; b.group.rotation.z = rot; b.group.position.set(0, 0.08, z); ST.add(b.group); ctx.reg(b.glyphs); return b; };
@@ -75,7 +75,7 @@ export function build(ctx) {
   enter(tl, gN, 27.1, { style: 'pop', stagger: 0.06, dur: 0.5 }); enter(tl, gS, 27.4, { style: 'pop', stagger: 0.06, dur: 0.5 }); ev(27.1, 'slam', 0.8); ev(27.4, 'slam', 0.7);
   addSub(ctx, [{ t: '37' }, { t: 'raças', c: '#F9D548' }, { t: '·' }, { t: '1.893', c: '#F9D548' }, { t: 'observações' }], 27.3, 29.6, { stagger: 0.09 });
   addSub(ctx, [{ t: 'com' }, { t: 'campo' }, { t: 'magnético' }, { t: 'estável', pill: true }], 29.65, 32.0, { stagger: 0.09 });
-  const cred = addSub(ctx, [{ t: 'Hart et al., 2013 · Frontiers in Zoology', c: '#9EEFFF' }], 27.6, 32.0, { size: 32, y: -420, font: 'mont7', maxW: 960 }); ctx.subWins.pop();
+  const cred = addSub(ctx, [{ t: 'Hart et al., 2013 · Frontiers in Zoology', c: '#9EEFFF' }], 27.6, 32.0, { size: 32, y: -330, font: 'mont7', maxW: 960 }); ctx.subWins.pop();
 
   // câmeras
   ctx.shot(21.0, 24.5, 'stage', (u) => interp(u, [{ t: 0, p: [0, 16.0, 14.5], l: [0, 1.2, -0.8], fov: 36, roll: -3 }, { t: 3.5, p: [0, 14.0, 12.5], l: [0, 1.4, -0.6], fov: 36, roll: 2 }], 'out'), { focus: 19, aperture: 0.25, bloom: 0.45 });

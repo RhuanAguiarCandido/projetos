@@ -10,7 +10,7 @@ export class Hud {
     this.order = 0;
     const m = new THREE.ShaderMaterial({ transparent: true, depthTest: false, depthWrite: false, vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `precision highp float; varying vec2 vUv; uniform float uOpacity; void main(){ float y = (vUv.y - 0.5) * 2.0; float a = exp(-pow((y + 0.05) / 0.62, 2.0)); gl_FragColor = vec4(0.02, 0.04, 0.12, a * 0.66 * uOpacity); }`, uniforms: { uOpacity: { value: 0 } } });
-    this.scrim = new THREE.Mesh(new THREE.PlaneGeometry(1080, 760), m); this.scrim.position.set(0, -330, -5); this.scrim.renderOrder = 0; this.scene.add(this.scrim); this.scrimMat = m;
+    this.scrim = new THREE.Mesh(new THREE.PlaneGeometry(1080, 760), m); this.scrim.position.set(0, -245, -5); this.scrim.renderOrder = 0; this.scene.add(this.scrim); this.scrimMat = m;
   }
   add(obj, order = 0) { obj.traverse((o) => { o.renderOrder = order; }); this.scene.add(obj); return obj; }
 }
@@ -83,7 +83,7 @@ export function sublineOut(tl, g, t, o = {}) {
 
 // legenda completa (cria, anima, registra janela do scrim e eventos de áudio)
 export function addSub(ctx, words, a, b, o = {}) {
-  const g = subline(ctx.tf[o.font ?? 'mont'], words, { size: o.size ?? 58, maxW: o.maxW ?? 800 }); g.position.set(o.x ?? 0, o.y ?? -250, 0); ctx.hud.add(g);
+  const g = subline(ctx.tf[o.font ?? 'mont'], words, { size: o.size ?? 58, maxW: o.maxW ?? 800 }); g.position.set(o.x ?? 0, o.y ?? -165, 0); ctx.hud.add(g);
   ctx.reg(g.userData.blocks.map((bl) => bl.tb.group), true); sublineIn(ctx.tl, g, a, { stagger: o.stagger ?? 0.07 }); sublineOut(ctx.tl, g, b - 0.3);
   (ctx.subWins ??= []).push([a, b]); return g;
 }

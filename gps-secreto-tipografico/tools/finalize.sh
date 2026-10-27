@@ -8,11 +8,11 @@ mkdir -p entrega render audio/build
 MIX=audio/build/mix.wav
 [ -f "$MIX" ] || { echo "falta $MIX (rode: node tools/dump_events.cjs && python3 -I audio/build_audio.py)"; exit 1; }
 echo "[1/3] medindo loudness..."
-ffmpeg -hide_banner -nostats -i "$MIX" -af loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json -f null - 2> render/loudnorm_pass1.txt
+ffmpeg -hide_banner -nostats -i "$MIX" -af loudnorm=I=-14:TP=-2.5:LRA=11:print_format=json -f null - 2> render/loudnorm_pass1.txt
 python3 -I - <<'PY'
 import json
 t = open('render/loudnorm_pass1.txt').read(); j = json.loads(t[t.rindex('{'):t.rindex('}') + 1])
-open('render/loudnorm_args.txt', 'w').write("loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=%s:measured_TP=%s:measured_LRA=%s:measured_thresh=%s:offset=%s:linear=true:print_format=summary" % (j['input_i'], j['input_tp'], j['input_lra'], j['input_thresh'], j['target_offset']))
+open('render/loudnorm_args.txt', 'w').write("loudnorm=I=-14:TP=-2.5:LRA=11:measured_I=%s:measured_TP=%s:measured_LRA=%s:measured_thresh=%s:offset=%s:linear=true:print_format=summary" % (j['input_i'], j['input_tp'], j['input_lra'], j['input_thresh'], j['target_offset']))
 print('medido: I=%s LUFS  TP=%s dBTP  LRA=%s' % (j['input_i'], j['input_tp'], j['input_lra']))
 PY
 echo "[2/3] aplicando normalização..."

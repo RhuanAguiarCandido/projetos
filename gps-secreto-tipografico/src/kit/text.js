@@ -94,7 +94,7 @@ void main(){
 const FS = /* glsl */ `
 precision highp float;
 varying vec3 vN, vW; varying vec2 vL;
-uniform vec3 uA, uB, uEmis, uRim; uniform float uOpacity, uShine, uShineAmt, uSide, uFlash, uAmb, uSpec, uFlat, uGradK;
+uniform vec3 uA, uB, uEmis, uRim, uSideCol; uniform float uOpacity, uShine, uShineAmt, uSide, uFlash, uAmb, uSpec, uFlat, uGradK;
 float bayer(vec2 p){ p = mod(p, 4.0); int x = int(p.x), y = int(p.y); int i = y * 4 + x;
   float m[16] = float[16](0.0,8.0,2.0,10.0, 12.0,4.0,14.0,6.0, 3.0,11.0,1.0,9.0, 15.0,7.0,13.0,5.0); return (m[i] + 0.5) / 16.0; }
 void main(){
@@ -106,7 +106,7 @@ void main(){
   float nl = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
   float g = clamp(vL.y * uGradK + 0.5, 0.0, 1.0);
   vec3 base = mix(uA, uB, g);
-  if (uSide > 0.5) base = uA * 0.50;
+  if (uSide > 0.5) base = uSideCol * (0.55 + 0.45 * nl);
   float lit = mix(uAmb + (1.0 - uAmb) * nl, 1.0, uFlat);
   vec3 c = base * lit;
   c += uRim * pow(1.0 - max(dot(N, V), 0.0), 2.4) * (1.0 - uFlat);
@@ -127,7 +127,7 @@ export function typeMaterial(o = {}) {
     vertexShader: VS, fragmentShader: FS, side: o.doubleSide ? THREE.DoubleSide : THREE.FrontSide,
     transparent: !!o.blend, depthTest: !o.blend, depthWrite: !o.blend, defines: o.blend ? { BLEND: 1 } : {},
     uniforms: {
-      uA: { value: col(o.colorA ?? '#ffffff') }, uB: { value: col(o.colorB ?? o.colorA ?? '#ffffff') }, uEmis: { value: col(o.emis ?? '#000000') }, uRim: { value: col(o.rim ?? '#000000') },
+      uSideCol: { value: o.sideCol ? col(o.sideCol) : col(o.colorA ?? '#ffffff').multiplyScalar(0.32).lerp(col('#0A1A4A'), 0.45) }, uA: { value: col(o.colorA ?? '#ffffff') }, uB: { value: col(o.colorB ?? o.colorA ?? '#ffffff') }, uEmis: { value: col(o.emis ?? '#000000') }, uRim: { value: col(o.rim ?? '#000000') },
       uOpacity: { value: 1 }, uShine: { value: -2 }, uShineAmt: { value: 1 }, uSide: { value: side }, uFlash: { value: 0 }, uAmb: { value: o.amb ?? 0.55 }, uSpec: { value: o.spec ?? 0.25 }, uFlat: { value: o.flat ?? 0 }, uGradK: { value: o.gradK ?? 1.25 },
     },
   });
@@ -155,7 +155,7 @@ export class TextBlock {
         if (g.ch === ' ') return;
         const geo = tf.geometry(g.ch, depth, bevel);
         if (!geo.attributes.position) return;
-        const mats = typeMaterial({ colorA: o.colorA, colorB: o.colorB, emis: o.emis, rim: o.rim, amb: o.amb, spec: o.spec, flat: depth <= 0 ? 1 : (o.flat ?? 0), gradK: o.gradK, blend: o.blend });
+        const mats = typeMaterial({ colorA: o.colorA, colorB: o.colorB, emis: o.emis, rim: o.rim, amb: o.amb, spec: o.spec, flat: depth <= 0 ? 1 : (o.flat ?? 0), gradK: o.gradK, blend: o.blend, sideCol: o.sideCol });
         const mesh = new THREE.Mesh(geo, depth <= 0 ? mats[0] : mats);
         const cx = (ox + g.x + g.adv / 2) * size; mesh.position.set(cx, 0, 0); mesh.scale.setScalar(size);
         lineGroup.add(mesh);

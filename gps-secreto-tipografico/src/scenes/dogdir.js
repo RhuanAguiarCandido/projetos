@@ -1,7 +1,7 @@
 // Direção do cão: pose e posição como função pura do tempo (determinístico).
 import { clamp, smooth, TAU, hash1 } from '../kit/util.js';
 
-const DEFAULT = { bob: 0, pitch: 0, roll: 0, sit: 0, gait: 0, gaitAmp: 0, neckPitch: 0, headYaw: 0, headPitch: 0, headRoll: 0, lookX: 0, lookY: 0, blink: 0, lid: 0.12, brow: 0, browTilt: 0, mouth: 0.15, tongue: 0, smile: 1, tailWag: 1, tailPhase: 0, tailLift: 0.3, earL: 0, earR: 0, earPerk: 0, breathe: 0, squash: 0, dizzy: 0, time: 0, flash: 0, opacity: 1 };
+const DEFAULT = { bob: 0, pitch: 0, roll: 0, sit: 0, gait: 0, gaitAmp: 0, neckPitch: 0, headYaw: 0, headPitch: 0, headRoll: 0, lookX: 0, lookY: 0, blink: 0, lid: 0.12, brow: 0, browTilt: 0, mouth: 0.3, tongue: 0.3, smile: 1.2, tailWag: 1, tailPhase: 0, tailLift: 0.3, earL: 0, earR: 0, earPerk: 0, breathe: 0, squash: 0, dizzy: 0, time: 0, flash: 0, opacity: 1 };
 
 // ângulo acumulado do giro (5 s -> 12 s), pré-integrado
 const T0 = 5, T1 = 12, DT = 1 / 600; const TH = [0];
@@ -20,7 +20,7 @@ export function dogPose(t, dog, mode = {}) {
   s.time = t; s.breathe = Math.sin(t * 2.4); s.blink = blinkAt(t); s.tailPhase = t * 9.5; s.earL = Math.sin(t * 3.1) * 0.25; s.earR = Math.sin(t * 3.4 + 1) * 0.25;
   const w = (a, b) => smooth((t - a) / (b - a));
   if (t < 5) {                                           // S1: senta e inclina a cabeça, curioso
-    s.sit = 1; s.mouth = 0.22; s.tongue = 0.35 * w(1.4, 1.9); s.headYaw = 0.12 * Math.sin(t * 1.3); s.headPitch = -0.05 + 0.1 * w(2.4, 2.7); s.headRoll = 0.34 * w(2.4, 2.9) * (1 + 0.05 * Math.sin(t * 4)); s.brow = 0.7 * w(1.4, 1.7) + 0.3 * w(2.6, 3); s.browTilt = 0.4 * w(2.6, 3.0);
+    s.sit = 1; s.mouth = 0.26 + 0.18 * w(2.4, 2.8); s.tongue = 0.4 * w(1.4, 1.9) + 0.3 * w(2.4, 2.8); s.smile = 1 + 0.5 * w(2.4, 2.8); s.headYaw = 0.12 * Math.sin(t * 1.3); s.headPitch = -0.05 - 0.1 * w(2.4, 2.9); s.lookY = 0.7 * w(2.4, 2.9); s.headRoll = 0.2 * w(2.4, 2.9) * (1 + 0.05 * Math.sin(t * 4)); s.brow = 0.7 * w(1.4, 1.7) + 0.3 * w(2.6, 3); s.browTilt = 0.4 * w(2.6, 3.0);
     s.earPerk = 0.7 * w(1.45, 1.7); s.tailWag = 0.9; s.tailLift = 0.15; s.lookX = 0.15 * Math.sin(t * 1.1);
     s.squash = 0.35 * Math.max(0, 1 - Math.abs(t - 1.5) * 8);
     if (mode.sitFace) r.rotation.y = mode.sitFace;

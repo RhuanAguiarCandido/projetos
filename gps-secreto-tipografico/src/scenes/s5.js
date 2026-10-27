@@ -14,7 +14,7 @@ export function build(ctx) {
   ctx.glitch(32.0, 32.55, 1.0); ctx.glitch(33.55, 33.75, 0.7); ctx.glitch(34.45, 34.62, 0.8);
   // título 3D
   const L = new Lockup(tf.anton, [
-    { text: 'AINDA É UM', width: 1.5, colorA: '#BFD9FF', colorB: '#FFFFFF' },
+    { text: 'AINDA É UM', width: 1.5, colorA: '#E6F0FF', colorB: '#FFFFFF' },
     { text: 'MISTÉRIO!', width: 1.6, colorA: '#E8A200', colorB: '#FFE680', rim: '#FFF3B0', emis: '#2A1C00' }], { gap: 0.1, depth: 0.2, rim: '#00D9F5', emis: '#04101E' });
   L.group.position.set(-0.28, 2.55, -1.2); PK.add(L.group); ctx.reg(L.all); vis(tl, L.group, 32.0, 35.05);
   enter(tl, L.blocks[0], 32.2, { style: 'slam', stagger: 0.04, dur: 0.5, dz: 2.0, order: 'rand', seed: 3 }); ev(32.0, 'glitch', 1); ev(32.2, 'slam', 1);
@@ -26,7 +26,7 @@ export function build(ctx) {
     if (t < 32 || t >= 35) return; const g = ctx.glitchAt(t); L.blocks.forEach((b, i) => { b.group.position.x = (hash1(Math.floor(t * 30) + i) - 0.5) * 0.12 * g; b.group.rotation.z = (hash1(Math.floor(t * 30) + i * 3) - 0.5) * 0.04 * g; });
   });
   // pontos de interrogação orbitando o cão congelado / confuso
-  const Qs = []; for (let i = 0; i < 5; i++) { const b = new TextBlock(tf.anton, '?', { size: 0.5, depth: 0.1, colorA: '#00B5D6', colorB: '#8CF6FF', rim: '#C8FBFF', emis: '#00323F' }); PK.add(b.group); Qs.push(b); vis(tl, b.group, 33.2 + i * 0.12, 39.0); ctx.reg(b.glyphs); enter(tl, b, 33.25 + i * 0.12, { style: 'pop', dur: 0.5, stagger: 0 }); }
+  const Qs = []; for (let i = 0; i < 5; i++) { const b = new TextBlock(tf.anton, '?', { size: 0.5, depth: 0.1, colorA: '#CFE4FF', colorB: '#FFFFFF', rim: '#00D9F5', emis: '#04101E' }); PK.add(b.group); Qs.push(b); vis(tl, b.group, 33.2 + i * 0.12, 39.0); ctx.reg(b.glyphs); enter(tl, b, 33.25 + i * 0.12, { style: 'pop', dur: 0.5, stagger: 0 }); }
   ev(33.25, 'pop', 0.8); ev(33.5, 'pop', 0.7); ev(33.75, 'pop', 0.6);
   ctx.updaters.push((t) => { if (t < 33.2 || t >= 39) return; const hp = new THREE.Vector3(); dog.head.getWorldPosition(hp); Qs.forEach((b, i) => { const a = t * 1.3 + i * TAU / 5, r = 0.95 + 0.12 * Math.sin(t * 2 + i); b.group.position.set(hp.x + Math.cos(a) * r, hp.y + 0.35 + Math.sin(t * 1.7 + i * 2) * 0.25 + (i % 2) * 0.3, hp.z - Math.abs(Math.sin(a)) * r * 0.9 - 0.15); b.group.rotation.y = Math.cos(a) * 0.5; }); });
   // bússola enlouquecida

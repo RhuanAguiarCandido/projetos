@@ -28,10 +28,12 @@ export function setLook(L) {
 
 const VS = /* glsl */ `
 varying vec3 vN, vW, vL;
+uniform float uAxisK;
 void main(){
   vec4 p4 = vec4(position, 1.0); vec3 nn = normal;
 #ifdef USE_INSTANCING
-  p4 = instanceMatrix * p4; nn = mat3(instanceMatrix) * nn;
+  vec3 axis = normalize(mat3(instanceMatrix) * vec3(0.0, 1.0, 0.0));            // pelos: sombreia pelo eixo (continua a superfície)
+  p4 = instanceMatrix * p4; nn = normalize(mix(mat3(instanceMatrix) * nn, axis, uAxisK));
 #endif
   vec4 w = modelMatrix * p4;
   vW = w.xyz; vL = p4.xyz;
@@ -88,12 +90,12 @@ export function toonMaterial(o = {}) {
   return new THREE.ShaderMaterial({
     vertexShader: VS, fragmentShader: FS, side: o.side ?? THREE.FrontSide,
     uniforms: {
-      ...STAGE,
+      ...STAGE, uRimAmt: o.rimAmt !== undefined ? { value: o.rimAmt } : STAGE.uRimAmt,
       uBase: { value: col(P.base) }, uShade: { value: col(P.shade) }, uLight: { value: col(P.light) },
       uBase2: { value: col(P2.base) }, uShade2: { value: col(P2.shade) }, uLight2: { value: col(P2.light) },
       uGradDir: { value: new THREE.Vector3(...(o.gradDir ?? [0, -1, 0])).normalize() }, uGradRange: { value: new THREE.Vector2(...(o.gradRange ?? [10, 11])) },
       uSpec: { value: o.spec ?? 0 }, uFlash: { value: 0 }, uFlashCol: { value: col('#FFFFFF') },
-      uBandA: { value: o.bandA ?? 0.42 }, uBandB: { value: o.bandB ?? 0.84 }, uSoft: { value: o.soft ?? 0.035 }, uOpacity: { value: 1 },
+      uBandA: { value: o.bandA ?? 0.42 }, uBandB: { value: o.bandB ?? 0.84 }, uSoft: { value: o.soft ?? 0.035 }, uOpacity: { value: 1 }, uAxisK: { value: o.axisK ?? 0 },
     },
   });
 }
@@ -128,14 +130,27 @@ export function toonMesh(geo, matOpts = {}, outline = { width: 2.6, color: '#6B3
   return g;
 }
 
-// tufo (chama de 3 pontas) — geometria compartilhada
+// tufo (mecha de pelo: cone fino levemente curvo) — geometria compartilhada
 export function tuftGeometry(h = 0.12, w = 0.045) {
-  const g = new THREE.ConeGeometry(w, h, 5, 1); g.translate(0, h / 2, 0); return g;
+  const g = new THREE.ConeGeometry(w, h, 4, 3); g.translate(0, h / 2, 0);
+  const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i) / h; p.setZ(i, p.getZ(i) + y * y * h * 0.22); }       // curva a ponta
+  g.computeVertexNormals(); return g;
+}
+// amostra pontos/normais sobre a superfície de uma geometria (vértices sorteados, determinístico) e cria o pelo
+export function furOn(geo, count, o = {}) {
+  const pos = geo.attributes.position, nor = geo.attributes.normal; const P = [], N = []; let a = o.seed ?? 11;
+  const rnd = () => ((a = (a * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let tries = 0; P.length < count && tries < count * 60; tries++) {
+    const k = Math.floor(rnd() * pos.count); const y = pos.getY(k);
+    if (o.filter && !o.filter(pos.getX(k), y, pos.getZ(k), nor.getX(k), nor.getY(k), nor.getZ(k))) continue;
+    P.push(new THREE.Vector3(pos.getX(k), y, pos.getZ(k))); N.push(new THREE.Vector3(nor.getX(k), nor.getY(k), nor.getZ(k)));
+  }
+  return tuftSet(P, N, o);
 }
 // conjunto instanciado de tufos sobre pontos de uma superfície (local do pai)
 export function tuftSet(points, normals, o = {}) {
   const geo = tuftGeometry(o.h ?? 0.12, o.w ?? 0.045);
-  const mat = toonMaterial({ palette: o.palette, spec: 0 });
+  const mat = toonMaterial({ palette: o.palette, palette2: o.palette2, gradDir: o.gradDir, gradRange: o.gradRange, spec: 0, soft: o.soft ?? 0.2, bandA: o.bandA ?? 0.38, bandB: o.bandB ?? 0.78, axisK: o.axisK ?? 0.78, rimAmt: o.rimAmt ?? 0.12 });
   const mesh = new THREE.InstancedMesh(geo, mat, points.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), s = new THREE.Vector3();
   const rnd = (() => { let a = 7; return () => ((a = (a * 1664525 + 1013904223) >>> 0) / 4294967296); })();

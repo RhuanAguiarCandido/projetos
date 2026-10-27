@@ -14,7 +14,7 @@ Fonte científica: <https://pmc.ncbi.nlm.nih.gov/articles/PMC3882779/>
 
 | Arquivo | O que é |
 |---|---|
-| `entrega/o-gps-secreto-dos-cachorros_9x16_1080x1920_30fps.mp4` | vídeo final (H.264 High, yuv420p, BT.709, AAC 192 kb/s, −14 LUFS) |
+| `entrega/o-gps-secreto-dos-cachorros_9x16_1080x1920_30fps.mp4` | vídeo final: 1080×1920, 30 fps, 45,000 s (1350 quadros), H.264 High yuv420p BT.709 ≈ 13,8 Mb/s (77 MB), AAC 192 kb/s 48 kHz estéreo; −14,3 LUFS, pico real −0,6 dBTP |
 | `entrega/capa_1080x1920.png` | quadro de capa |
 | `entrega/contato_1s.png` | folha de contato (1 quadro por segundo) |
 
@@ -50,8 +50,9 @@ Cada quadro é uma função pura do tempo (linha do tempo GSAP pausada + `totalT
 - **Tipografia 3D de verdade** (`src/kit/text.js`): contornos reais das fontes (opentype.js, com *kerning*) → `Shape` → `ExtrudeGeometry` com chanfro; cada letra é um objeto próprio (pivô no centro) com material de gradiente + luz de recorte + brilho varrendo + *flash*. Dithering de opacidade (Bayer) evita ordenação de transparência.
 - **Cinética por letra** (`src/kit/kinetic.js`): *slam*, *drop*, *rise*, *spin*, *pop*; sai por *shrink*, *fall*, *slide*; lockups empilhados que ajustam cada linha à largura; brilho e *flash* nas batidas (grade de 120 BPM).
 - **HUD ortográfico** (`src/engine/hud.js`): legendas palavra a palavra com pílulas de destaque, sombra, *scrim* suave e ícone de patinha vetorial (no lugar do emoji, que as fontes não têm).
-- **Personagem** (`src/world/dog.js`, `toon.js`): golden retriever 3D estilizado (*toon*: 3 faixas suaves, luz de recorte ciano, contorno por casco invertido com largura constante em pixels, tufos instanciados), com rig completo — cabeça, olhos com pálpebras e espiral de tontura, sobrancelhas, orelhas, mandíbula/língua, quatro patas, rabo em cadeia.
-- **Mundo**: parque na “hora azul” (`park.js`), Terra pontilhada com continentes do Natural Earth 110 m + linhas dipolares com pulsos Sul→Norte (`space.js`), bússola holográfica e **70 cães** vistos de cima que se alinham ao eixo N–S com histograma polar ilustrativo (`compass.js`).
+- **Referência visual**: a imagem de referência enviada (golden retriever sob céu azul-cobalto, grama vibrante, holograma de bússola com Terra e arcos do campo) foi o “norte” de direção de arte: parque ensolarado em baixo ângulo, cão olhando para o holograma, rosa dos ventos de 8 pontas com aro dourado, Terra translúcida e arcos tracejados.
+- **Personagem** (`src/world/dog.js`, `toon.js`): golden retriever 3D no estilo “CG animado” — sombreamento em rampa suave, contorno fino de largura constante em pixels, pelagem de ~3 mil mechas instanciadas sombreadas pelo eixo (leem como casaco contínuo, com franjas no peito, orelhas, patas e rabo), focinho longo, olhos castanhos, boca aberta com língua — e rig completo: cabeça, pálpebras, espiral de tontura, sobrancelhas, orelhas, mandíbula, quatro patas e rabo em cadeia.
+- **Mundo**: parque ensolarado (`park.js`: céu em gradiente, nuvens, gramado com lâminas ao vento, árvores, flores e pólen), Terra pontilhada com continentes do Natural Earth 110 m + linhas dipolares com pulsos Sul→Norte (`space.js`), bússola holográfica e **70 cães** vistos de cima que se alinham ao eixo N–S com histograma polar ilustrativo (`compass.js`).
 - **Engine** (`src/engine/engine.js`): HDR com MSAA, profundidade de campo, *bloom*, aberração cromática, glitch, transições, *tone map* suave, grade, vinheta, grão e dither; HUD composto por cima; acumulação de subquadros.
 - **Áudio** (`audio/build_audio.py`): trilha eletrônica de 120 BPM (bumbo, claps, hats, baixo, pads, arpejos com *ping-pong delay*, *sidechain*) e efeitos (slam, impacto, whoosh, risers, ticks, bell, glitch) **sintetizados em numpy** e sincronizados aos eventos exportados da própria linha do tempo visual (`events.json`). Nenhuma amostra de terceiros; nenhuma voz.
 - **Render** (`tools/render.cjs`): Chromium + SwiftShader (sem GPU), quadros lidos por `readPixels`, segmentos sem perdas FFV1 e uma única codificação final x264 (CRF 16).
@@ -75,7 +76,7 @@ node tools/still.cjs out/s 0.5 1 1.8 8.6 23.6   # revisão rápida de quadros (e
 - Números vindos do estudo: **70 cães**, **37 raças**, **1.893 observações** (de defecação); preferência pelo **eixo norte–sul** sob **campo magnético estável**.
 - O histograma polar é **ilustrativo** (rotulado no vídeo); não são dados reais do artigo.
 - O vídeo deixa explícito que **não acontece sempre** e que **ninguém provou que as voltas sejam magnéticas**.
-- A imagem de referência do golden retriever citada no briefing **não foi fornecida**; o personagem é procedural, com a mesma geometria e paleta em todas as cenas.
+- O personagem é procedural (mesma geometria e paleta em todas as cenas), guiado pela imagem de referência enviada; não é uma cópia fotográfica dela.
 
 ## Créditos e licenças
 

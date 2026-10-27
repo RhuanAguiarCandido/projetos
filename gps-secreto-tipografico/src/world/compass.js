@@ -32,7 +32,12 @@ export class Compass {
     // disco de vidro + anéis
     this.disc = add(new THREE.CircleGeometry(R * 1.04, 96), m('#0A2A5A', 0.9, 0.55, { additive: false, depthTest: true }));
     this.disc.position.y = -0.01;
-    this.ring1 = add(ringGeo(R * 0.985, R * 1.0), m('#00D9F5', 2.2));
+    this.ring1 = add(ringGeo(R * 0.968, R * 1.0), m('#F9D548', 2.0));            // aro dourado (como na referência)
+    {   // rosa dos ventos de 8 pontas, brilhando em ciano sob a agulha (Norte em -Z)
+      const sh = new THREE.Shape();
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, r = i % 2 ? 0.17 : (i % 4 === 0 ? 0.80 : 0.52); const x = Math.sin(a) * r, y = Math.cos(a) * r; i ? sh.lineTo(x, y) : sh.moveTo(x, y); }
+      sh.closePath(); this.rose = add(new THREE.ShapeGeometry(sh), m('#7FEFFF', 1.25, 0.6)); this.rose.position.y = 0.003;
+    }
     this.ring2 = add(ringGeo(R * 0.80, R * 0.806), m('#00D9F5', 1.4, 0.8));
     this.ring3 = add(ringGeo(R * 0.52, R * 0.524), m('#9EEFFF', 1.2, 0.6));
     this.ticks = add(tickGeo(R * 0.97, R * 0.035, 0.0035, 120, 10, R * 0.09), m('#BFF6FF', 1.6), false);

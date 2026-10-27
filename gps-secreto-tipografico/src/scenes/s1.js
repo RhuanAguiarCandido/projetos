@@ -4,12 +4,14 @@ import { Lockup, enter, exit, glint, flash, ev, vis, fadeBlock } from '../kit/ki
 import { TextBlock } from '../kit/text.js';
 import { addSub } from '../engine/hud.js';
 import { interp, shockRing, wob } from './common.js';
+import { Compass } from '../world/compass.js';
+import { Space, makeField } from '../world/space.js';
 
 export function build(ctx) {
   const { tl, tf, G, hud } = ctx;
   const park = G.park;
   // título em 3D, atrás do cão (profundidade real)
-  const A = new Lockup(tf.anton, [{ text: 'SEU', width: 0.64, colorA: '#BFD9FF', colorB: '#FFFFFF' }, { text: 'CACHORRO', width: 1.5, colorA: '#BFD9FF', colorB: '#FFFFFF' }], { gap: 0.1, depth: 0.18, rim: '#00D9F5', emis: '#04101E' });
+  const A = new Lockup(tf.anton, [{ text: 'SEU', width: 0.64, colorA: '#E6F0FF', colorB: '#FFFFFF' }, { text: 'CACHORRO', width: 1.5, colorA: '#E6F0FF', colorB: '#FFFFFF' }], { gap: 0.1, depth: 0.18, rim: '#00D9F5', emis: '#04101E' });
   A.group.position.set(0, 2.85, -1.4); park.add(A.group);
   const B = new Lockup(tf.anton, [{ text: 'TEM GPS?!', width: 1.5, colorA: '#E8A200', colorB: '#FFE680', rim: '#FFF3B0', emis: '#2A1C00' }], { depth: 0.22 });
   B.group.position.set(0, 1.78, -1.1); park.add(B.group);
@@ -25,15 +27,26 @@ export function build(ctx) {
   exit(tl, A.blocks[0], 2.3, { style: 'slide', dx: -3, stagger: 0.02, dur: 0.22 }); exit(tl, A.blocks[1], 2.3, { style: 'slide', dx: 3, stagger: 0.015, dur: 0.22, order: 'rtl' }); exit(tl, B.blocks[0], 2.35, { style: 'fall', stagger: 0.02, dur: 0.25 });
   ev(2.5, 'whip', 1);
 
-  // plano 1B: bússola holográfica e "?" gigante
-  const Q = new TextBlock(tf.anton, '?', { size: 1.5, depth: 0.2, colorA: '#E8A200', colorB: '#FFE680', rim: '#FFF3B0', emis: '#3A2A00' });
-  Q.group.position.set(0.72, 1.72, 0.2); Q.group.scale.setScalar(0.8); park.add(Q.group); ctx.reg(Q.glyphs); vis(tl, Q.group, 2.7, 5.1);
-  enter(tl, Q, 2.8, { style: 'spin', dur: 0.7, stagger: 0 }); ev(2.8, 'pop', 1); glint(tl, Q, 3.5, 0.7);
-  ctx.updaters.push((t) => { if (t >= 2.7 && t < 5.1) { Q.group.rotation.y = Math.sin(t * 1.7) * 0.5; Q.group.position.y = 1.9 + Math.sin(t * 2.2) * 0.05; } });
+  // plano 1B (como na referência): o cão olha para o alto e acima da cabeça flutua o holograma — bússola em primeiro plano,
+  // Terra translúcida atrás e arcos tracejados do campo magnético
+  const comp1 = new Compass(tf.anton); const HG = new THREE.Group(); park.add(HG); HG.visible = false;
+  const cp1 = comp1.group; HG.add(cp1); cp1.scale.setScalar(0.4); cp1.position.set(0, 2.0, 0.15); cp1.rotation.x = Math.PI / 2 + 0.25;
+  const mini = new Space(ctx.land); mini.stars.visible = false; mini.dust.visible = false; mini.field.visible = false; mini.landMat.uniforms.uSize.value = 0.0135 * 0.46;
+  mini.group.scale.setScalar(0.46); mini.group.position.set(0.22, 2.1, -0.5); mini.atm.material.uniforms.uInt.value = 1.1; HG.add(mini.group);
+  const arcs = makeField([1.5, 2.0]); const arcG = new THREE.Group(); arcG.add(arcs.mesh); arcG.position.copy(mini.group.position); arcG.scale.setScalar(0.46); arcG.rotation.z = 0.35; arcs.mat.uniforms.uInt.value = 0.8; HG.add(arcG);
+  ctx.reg(comp1.letters.flatMap((b) => b.glyphs));
+  tl.set(HG, { visible: true }, 2.65); tl.set(HG, { visible: false }, 5.05); ev(2.75, 'pop', 1); ev(3.05, 'ding', 0.8);
+  ctx.updaters.push((t) => {
+    if (t < 2.6 || t >= 5.1) return; const k = Math.min(1, Math.max(0, (t - 2.7) / 0.7)); const e = 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);     // back.out
+    comp1.setOpacity(Math.min(1, k * 2.2)); cp1.scale.setScalar(Math.max(0.0001, 0.4 * e)); cp1.position.y = 2.0 + Math.sin(t * 1.8) * 0.04;
+    mini.group.scale.setScalar(Math.max(0.0001, 0.46 * e)); arcG.scale.setScalar(Math.max(0.0001, 0.46 * e)); arcs.mat.uniforms.uTime.value = t; arcs.mat.uniforms.uDraw.value = 1.25 * k;
+    mini.update(t, ctx.H / (2 * Math.tan(ctx.camera.fov * Math.PI / 360))); mini.group.rotation.y = t * 0.35; mini.group.position.y = 2.12 + Math.sin(t * 1.5 + 1) * 0.05;
+    const u = t - 3.0; comp1.update(t, u < 0 ? 0.6 : Math.sin(u * 8.5) * 1.3 * Math.exp(-u * 1.8));
+  });
   addSub(ctx, [{ t: 'Ele' }, { t: 'sabe' }, { t: 'onde' }, { t: 'fica' }, { t: 'o' }, { t: 'Norte?', pill: true }], 3.0, 5.0); ev(3.0, 'tick', 1);
 
   // câmeras
-  ctx.shot(0, 2.5, 'park', (u, t) => { const k = interp(u, [{ t: 0, p: [1.3, 0.55, 5.6], l: [0, 1.55, 0], fov: 40, roll: 3 }, { t: 2.5, p: [0.45, 0.7, 4.0], l: [0, 1.5, 0], fov: 36, roll: 0 }], 'out'); k.p[0] += wob(t, 0.6) * 0.04; return k; }, { aperture: 0.7, bloom: 0.5 }, { dog: true });
-  ctx.shot(2.5, 5.0, 'park', (u, t) => interp(u, [{ t: 0, p: [-1.5, 0.95, 4.2], l: [0.1, 1.05, 0.4], fov: 36, roll: -4 }, { t: 2.5, p: [-0.8, 1.1, 3.4], l: [0.1, 1.05, 0.4], fov: 32, roll: 0 }], 'out'), { aperture: 0.9, bloom: 0.5 }, { dog: true });
+  ctx.shot(0, 2.5, 'park', (u, t) => { const k = interp(u, [{ t: 0, p: [1.3, 0.55, 5.6], l: [0, 1.55, 0], fov: 40, roll: 3 }, { t: 2.5, p: [0.45, 0.7, 4.0], l: [0, 1.5, 0], fov: 36, roll: 0 }], 'out'); k.p[0] += wob(t, 0.6) * 0.04; return k; }, { aperture: 0.35, bloom: 0.5 }, { dog: true });
+  ctx.shot(2.5, 5.0, 'park', (u, t) => interp(u, [{ t: 0, p: [-0.9, 0.55, 5.0], l: [0.05, 1.1, 0.2], fov: 42, roll: -4 }, { t: 2.5, p: [0.15, 0.7, 4.2], l: [0.05, 1.15, 0.2], fov: 40, roll: 0 }], 'out'), { aperture: 0.8, bloom: 0.5 }, { dog: true });
   ctx.transition(2.5, 0.36, 'whip', [1, 0]);
 }

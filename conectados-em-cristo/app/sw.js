@@ -1,5 +1,5 @@
 // Service worker: guarda o app no aparelho para abrir sem internet.
-const CACHE = 'repertorio-v10.3'; // mesmo número de version.json
+const CACHE = 'repertorio-v10.4'; // mesmo número de version.json
 const ARQUIVOS = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'config.js', 'seed.js',
   'manifest.webmanifest', 'version.json', 'img/logo.png', 'img/logo-igreja.png', 'img/icon-192.png', 'img/icon-512.png',

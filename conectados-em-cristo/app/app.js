@@ -194,10 +194,14 @@ const devocionaisPublicados = () => state.devocionais.filter((d) => d.data <= ho
 const devocionalPorId = (id) => state.devocionais.find((d) => d.id === id);
 const paragrafos = (t) => esc(t).split(/\n\s*\n/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
 
+// devocional NOVO: tem texto para abrir, foi publicado depois que a pessoa entrou e ela nunca abriu
+const devNovo = (d) => !!d.texto && ehNovo(d) && d.autorUid !== state.user?.uid; // quem publicou não vê o selo
+const seloNovo = '<span class="novo">NOVO</span>';
+
 function cardDevocional(d) {
   const hoje = d.data === hojeISO();
   const corpo = `
-      <small>${hoje ? 'Palavra de hoje' : `Palavra · ${esc(fmtData(d.data, { day: 'numeric', month: 'long' }))}`}</small>
+      <small>${hoje ? 'Palavra de hoje' : `Palavra · ${esc(fmtData(d.data, { day: 'numeric', month: 'long' }))}`}${devNovo(d) ? ` ${seloNovo}` : ''}</small>
       <blockquote>“${esc(d.versiculo)}”</blockquote>
       ${d.referencia ? `<cite>${esc(d.referencia)}</cite>` : ''}
       ${d.texto ? '<span class="ler">Ler devocional →</span>' : ''}`;
@@ -269,6 +273,12 @@ function telaDevocional(id) {
       ${d.autor ? `<p class="dica">Publicado por ${esc(d.autor)}</p>` : ''}
     </article>
     ${devocionaisPublicados().length > 1 ? '<a class="btn-link" href="#/devocionais">Ver devocionais anteriores</a>' : ''}`,
+    depois() {
+      if (devNovo(d)) { // abriu pela primeira vez: tira o selo NOVO
+        state.perfil.vistos = [...(state.perfil.vistos || []), d.id];
+        api.salvarPerfil();
+      }
+    },
   };
 }
 
@@ -282,7 +292,7 @@ function telaDevocionais() {
     ${state.isAdmin ? '<a class="btn primario largo" href="#/devocionais/novo" style="margin:0 0 12px">📖 Publicar devocional</a>' : ''}
     <div class="lista">${lista.length ? lista.map((d) => `<a class="linha" href="${state.isAdmin ? `#/devocionais/${d.id}` : `#/devocional/${d.id}`}">
         <span class="num data">${isoToDate(d.data).getDate()}<small>${fmtData(d.data, { month: 'short' }).replace('.', '')}</small></span>
-        <span class="info"><b>${esc(d.referencia || d.versiculo)}</b><small>${d.data > hojeISO() ? '⏰ agendado · ' : ''}${esc(d.versiculo)}</small></span>
+        <span class="info"><b>${esc(d.referencia || d.versiculo)}${devNovo(d) ? ` ${seloNovo}` : ''}</b><small>${d.data > hojeISO() ? '⏰ agendado · ' : ''}${esc(d.versiculo)}</small></span>
       </a>`).join('') : '<p class="vazio">Nenhum devocional ainda.</p>'}</div>`,
   };
 }
@@ -314,7 +324,7 @@ function telaEditarDevocional(id) {
         const f = Object.fromEntries(new FormData(e.target));
         const salvo = {
           ...d, data: f.data, referencia: f.referencia.trim(), versiculo: f.versiculo.trim(), texto: f.texto.trim(),
-          autor: d.autor || state.user?.nome || '', criadoEm: d.criadoEm || Date.now(),
+          autor: d.autor || state.user?.nome || '', autorUid: d.autorUid || state.user?.uid || '', criadoEm: d.criadoEm || Date.now(),
         };
         if (!salvo.versiculo) { toast('Escreva o versículo.'); return; }
         await api.salvarDevocional(salvo);
@@ -1124,7 +1134,14 @@ onChange(() => { sincronizarAparencia(); render(); });
 
 // A barra de baixo é montada aqui (e não só no index.html), para que os 4 ícones
 // apareçam mesmo se o celular estiver com uma página antiga guardada.
-const NAV = [['inicio', '#/', '⌂', 'Início'], ['hinos', '#/hinos', '♫', 'Hinos'], ['agenda', '#/agenda', '▦', 'Agenda'], ['conta', '#/conta', '●', 'Conta']];
+// Ícones desenhados (SVG), todos do mesmo tamanho e traço.
+const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const NAV = [
+  ['inicio', '#/', svg('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h14V9"/><path d="M10 21v-6h4v6"/>'), 'Início'],
+  ['hinos', '#/hinos', svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'), 'Hinos'],
+  ['agenda', '#/agenda', svg('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'), 'Agenda'],
+  ['conta', '#/conta', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>'), 'Conta'],
+];
 $('.nav').innerHTML = NAV.map(([k, href, ic, nome]) => `<a href="${href}" data-nav="${k}"><span>${ic}</span>${nome}</a>`).join('');
 
 init();

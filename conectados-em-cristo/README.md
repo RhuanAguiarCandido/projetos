@@ -19,3 +19,7 @@ Ambas em PNG com fundo transparente.
 - Paleta de referência: [`../paletas/preto-areia-vinho`](../paletas/preto-areia-vinho)
 - Vermelho usado na logo vermelha: **`#BC0000`** (amostrado da imagem). É um
   vermelho mais vivo que o Vinho da paleta (`#600F1E`).
+
+## Repertório
+
+[`repertorio/`](repertorio/) — 41 hinos com links de voz, playback e letra.

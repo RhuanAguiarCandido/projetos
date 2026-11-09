@@ -2,36 +2,62 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function logado() { return request.auth != null; }
+    function meuEmail() { return request.auth.token.email; }
+
+    // Proprietário: rhuan.4b@gmail.com com e-mail verificado (login Google)
+    function dono() {
+      return logado() && meuEmail() == 'rhuan.4b@gmail.com' && request.auth.token.email_verified == true;
+    }
+    // Conta fixa "admin" (usuário e senha): liberada por um documento em /admins
+    function contaFixa() {
+      return logado() && exists(/databases/$(database)/documents/admins/$(meuEmail()));
+    }
+    function meuCadastro() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function temCadastro() {
+      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+    // Admin: proprietário, conta fixa, ou membro aprovado com papel "admin"
     function adm() {
-      return logado() && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+      return dono() || contaFixa()
+        || (temCadastro() && meuCadastro().papel == 'admin' && meuCadastro().status == 'aprovado');
     }
-    // cadastro aprovado pelo Adm
     function aprovado() {
-      return logado()
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.status == 'aprovado';
+      return adm() || (temCadastro() && meuCadastro().status == 'aprovado');
     }
 
-    // Hinos e agenda: só aprovados (e o Adm) leem; só o Adm altera
-    match /hinos/{id}   { allow read: if aprovado() || adm(); allow write: if adm(); }
-    match /cultos/{dia} { allow read: if aprovado() || adm(); allow write: if adm(); }
+    // Hinos e agenda: aprovados leem; só admins alteram
+    match /hinos/{id}   { allow read: if aprovado(); allow write: if adm(); }
+    match /cultos/{dia} { allow read: if aprovado(); allow write: if adm(); }
 
-    // Cadastros
+    // Usuários
     match /usuarios/{uid} {
-      function dono() { return logado() && request.auth.uid == uid; }
-      allow read: if dono() || adm();
-      // ao se cadastrar, a pessoa só pode criar o próprio registro como "pendente"
-      allow create: if (dono() && request.resource.data.status == 'pendente'
-                        && request.resource.data.get('adm', false) == false) || adm();
-      // a pessoa pode salvar favoritos e grifos, mas não mudar o próprio status
-      allow update: if (dono() && request.resource.data.status == resource.data.status
-                        && request.resource.data.get('adm', false) == resource.data.get('adm', false)) || adm();
-      allow delete: if adm();
+      function meu() { return logado() && request.auth.uid == uid; }
+      function campos() { return request.resource.data; }
+      // ninguém mexe no cadastro do proprietário além dele mesmo
+      function ehDoProprietario() { return resource.data.email == 'rhuan.4b@gmail.com'; }
+
+      allow read: if meu() || adm();
+      // ao se cadastrar: só o próprio registro, como membro pendente
+      allow create: if meu() && (
+        (campos().status == 'pendente' && campos().papel == 'membro' && campos().get('adm', false) == false)
+        || dono() || contaFixa());
+      // a própria pessoa salva favoritos e grifos, mas não muda status, papel nem e-mail
+      allow update: if
+        (meu() && campos().status == resource.data.status
+               && campos().get('papel', 'membro') == resource.data.get('papel', 'membro')
+               && campos().email == resource.data.email
+               && campos().get('adm', false) == resource.data.get('adm', false))
+        || (adm() && !ehDoProprietario() && campos().email == resource.data.email)
+        || (dono() && meu());
+      allow delete: if adm() && !ehDoProprietario();
     }
 
-    // Lista de administradores (documento com o e-mail como ID): cada um só consulta o próprio
+    // Conta fixa do Adm: só se cria pelo console do Firebase
     match /admins/{email} {
-      allow read: if logado() && request.auth.token.email == email;
-      allow write: if false; // adicione Adms pelo console do Firebase
+      allow read: if logado() && meuEmail() == email;
+      allow write: if false;
     }
   }
 }

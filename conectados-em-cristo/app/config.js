@@ -21,4 +21,7 @@ export const firebaseConfig = null;
 // No modo online, o usuário abaixo entra com a conta de e-mail ADMIN_EMAIL,
 // criada no Firebase Authentication (veja SETUP.md, passo 3).
 export const ADMIN_USUARIO = 'admin';
+
+// Proprietário do app: sempre Adm, entra com Google e ninguém pode rebaixá-lo.
+export const DONO_EMAIL = 'rhuan.4b@gmail.com';
 export const ADMIN_EMAIL = 'admin@hinario-conectados.app';

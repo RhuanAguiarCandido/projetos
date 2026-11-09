@@ -4,7 +4,7 @@
 //   - Quem quer usar faz o cadastro (nome, e-mail, senha) ou entra com Google.
 //   - O cadastro fica "pendente" até o Adm aprovar. Só aprovados (e o Adm) veem o hinário.
 //   - O Adm entra com usuário + senha (ADMIN_USUARIO em config.js).
-import { firebaseConfig, ADMIN_USUARIO, ADMIN_EMAIL } from './config.js';
+import { firebaseConfig, ADMIN_USUARIO, ADMIN_EMAIL, DONO_EMAIL } from './config.js';
 import { SEED } from './seed.js';
 
 export const state = {
@@ -12,6 +12,8 @@ export const state = {
   cultos: [],
   user: null,          // { uid, nome, email, foto }
   isAdmin: false,
+  isDono: false,       // proprietário (DONO_EMAIL)
+  papel: 'membro',     // membro | admin
   status: 'anonimo',   // anonimo | pendente | aprovado | recusado
   perfil: { favoritos: [], grifos: {} },
   usuarios: [],        // só para o Adm: cadastros de todos
@@ -104,11 +106,13 @@ export const api = {
   },
   esqueciSenha: (email) => impl.esqueciSenha(normEmail(email)),
   logout: () => impl.logout(),
-  async definirStatus(uid, status) {
+  // Adm aprova/recusa (status) e define membro/admin (papel). O proprietário não pode ser alterado.
+  async atualizarUsuario(uid, mudancas) {
     const u = state.usuarios.find((x) => x.uid === uid);
-    if (u) u.status = status;
+    if (!u || u.dono) throw erro('O proprietário não pode ser alterado.');
+    Object.assign(u, mudancas);
     emit();
-    await impl.definirStatus(uid, status);
+    await impl.atualizarUsuario(uid, mudancas);
   },
 };
 
@@ -127,9 +131,11 @@ function demo() {
 
   const save = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch {} };
   const aplicar = () => {
-    state.isAdmin = db.sessao === 'adm';
     const c = db.contas.find((x) => x.uid === db.sessao);
-    if (state.isAdmin) {
+    state.isDono = false;
+    state.papel = db.sessao === 'adm' ? 'admin' : (c?.papel || 'membro');
+    state.isAdmin = db.sessao === 'adm' || (c?.papel === 'admin' && c?.status === 'aprovado');
+    if (db.sessao === 'adm') {
       state.user = { uid: 'adm', nome: 'Administrador', email: ADMIN_USUARIO };
       state.status = 'aprovado';
       state.perfil = db.perfilAdm;
@@ -143,7 +149,7 @@ function demo() {
       state.perfil = perfilVazio();
     }
     state.usuarios = state.isAdmin
-      ? db.contas.map(({ uid, nome, email, status, criadoEm }) => ({ uid, nome, email, status, criadoEm }))
+      ? db.contas.map(({ uid, nome, email, status, papel, criadoEm }) => ({ uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: false }))
       : [];
     save();
     emit();
@@ -156,7 +162,7 @@ function demo() {
     async cadastrar(nome, email, senha) {
       if (db.contas.some((c) => c.email === email)) throw erro('Este e-mail já tem cadastro. Use "Entrar".');
       const uid = 'u' + Date.now().toString(36);
-      db.contas.push({ uid, nome, email, hash: await sha256(email + ':' + senha), status: 'pendente', criadoEm: Date.now(), perfil: perfilVazio() });
+      db.contas.push({ uid, nome, email, hash: await sha256(email + ':' + senha), status: 'pendente', papel: 'membro', criadoEm: Date.now(), perfil: perfilVazio() });
       db.sessao = uid;
       aplicar();
     },
@@ -174,9 +180,9 @@ function demo() {
     },
     esqueciSenha() { throw erro('No modo demonstração não há envio de e-mail.'); },
     logout() { db.sessao = null; aplicar(); },
-    definirStatus(uid, status) {
+    atualizarUsuario(uid, mudancas) {
       const c = db.contas.find((x) => x.uid === uid);
-      if (c) c.status = status;
+      if (c) Object.assign(c, mudancas);
       aplicar();
     },
   };
@@ -200,45 +206,48 @@ async function firebase() {
   });
   state.modo = 'online';
 
-  // Assinaturas que dependem de quem está logado
-  let parar = [];
-  const pararTudo = () => { parar.forEach((f) => f()); parar = []; };
-  let dadosAssinados = false;
-  let usuariosAssinados = false;
-  const assinarDados = () => {
-    if (dadosAssinados) return;
-    dadosAssinados = true;
-    parar.push(F.onSnapshot(F.collection(db, 'hinos'), (s) => {
+  // Assinaturas que dependem de quem está logado (cada uma pode ser ligada/desligada)
+  const parar = { dados: null, usuarios: null, perfil: null };
+  const desligar = (k) => { if (parar[k]) { parar[k](); parar[k] = null; } };
+  const ligarDados = () => {
+    if (parar.dados) return;
+    const a = F.onSnapshot(F.collection(db, 'hinos'), (s) => {
       state.hinos = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       emit();
-    }));
-    parar.push(F.onSnapshot(F.collection(db, 'cultos'), (s) => {
+    }, () => {});
+    const b = F.onSnapshot(F.collection(db, 'cultos'), (s) => {
       state.cultos = s.docs.map((d) => ({ data: d.id, ...d.data() }));
       emit();
-    }));
+    }, () => {});
+    parar.dados = () => { a(); b(); };
   };
-  const assinarUsuarios = () => {
-    if (usuariosAssinados) return;
-    usuariosAssinados = true;
-    parar.push(F.onSnapshot(F.collection(db, 'usuarios'), (s) => {
+  const ligarUsuarios = () => {
+    if (parar.usuarios) return;
+    parar.usuarios = F.onSnapshot(F.collection(db, 'usuarios'), (s) => {
       state.usuarios = s.docs
         .map((d) => ({ uid: d.id, ...d.data() }))
-        .filter((u) => !u.adm)
-        .map(({ uid, nome, email, status, criadoEm }) => ({ uid, nome, email, status, criadoEm }));
+        .filter((u) => !u.adm) // esconde a conta fixa "admin"
+        .map(({ uid, nome, email, status, papel, criadoEm }) => ({
+          uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: email === DONO_EMAIL,
+        }));
       emit();
-    }));
+    }, () => {});
   };
 
   let nomeDoCadastro = null; // nome digitado no cadastro, usado ao criar o documento
   await new Promise((pronto) => A.onAuthStateChanged(auth, async (u) => {
-    pararTudo();
-    dadosAssinados = false;
-    usuariosAssinados = false;
-    Object.assign(state, { user: null, isAdmin: false, status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], cultos: [] });
+    Object.keys(parar).forEach(desligar);
+    Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], cultos: [] });
     if (!u) { emit(); pronto(); return; }
 
     state.user = { uid: u.uid, nome: u.displayName || nomeDoCadastro || u.email, email: u.email, foto: u.photoURL };
-    try { state.isAdmin = (await F.getDoc(F.doc(db, 'admins', u.email))).exists(); } catch {}
+    // proprietário: só vale com e-mail verificado (login Google)
+    const dono = u.email === DONO_EMAIL && u.emailVerified;
+    // conta fixa do Adm (usuário "admin"): liberada pela coleção "admins" no console
+    let contaFixa = false;
+    try { contaFixa = (await F.getDoc(F.doc(db, 'admins', u.email))).exists(); } catch {}
+    const admNato = dono || contaFixa;
+    state.isDono = dono;
 
     const ref = F.doc(db, 'usuarios', u.uid);
     try {
@@ -246,22 +255,25 @@ async function firebase() {
       if (!snap.exists()) {
         await F.setDoc(ref, {
           nome: state.user.nome, email: u.email, criadoEm: Date.now(),
-          status: state.isAdmin ? 'aprovado' : 'pendente', adm: state.isAdmin,
+          status: admNato ? 'aprovado' : 'pendente', papel: admNato ? 'admin' : 'membro', adm: contaFixa,
           ...perfilVazio(),
         });
       }
     } catch (e) { console.error(e); }
     nomeDoCadastro = null;
 
-    parar.push(F.onSnapshot(ref, (d) => {
+    // o próprio cadastro: aprovação, papel, favoritos e grifos chegam ao vivo
+    parar.perfil = F.onSnapshot(ref, (d) => {
       const dados = d.data() || {};
       state.perfil = { ...perfilVazio(), favoritos: dados.favoritos || [], grifos: dados.grifos || {} };
+      state.papel = admNato ? 'admin' : (dados.papel || 'membro');
+      state.isAdmin = admNato || (dados.papel === 'admin' && dados.status === 'aprovado');
       state.status = state.isAdmin ? 'aprovado' : (dados.status || 'pendente');
       if (dados.nome) state.user.nome = dados.nome;
-      if (state.isAdmin || state.status === 'aprovado') assinarDados(); // libera assim que o Adm aprovar
-      if (state.isAdmin) assinarUsuarios();
+      if (state.status === 'aprovado') ligarDados(); else desligar('dados');
+      if (state.isAdmin) ligarUsuarios(); else { desligar('usuarios'); state.usuarios = []; }
       emit();
-    }));
+    }, () => {});
     emit();
     pronto();
   }));
@@ -298,6 +310,6 @@ async function firebase() {
     loginAdm: (senha) => tentar(() => A.signInWithEmailAndPassword(auth, ADMIN_EMAIL, senha + SUFIXO_SENHA_ADM)),
     esqueciSenha: (email) => tentar(() => A.sendPasswordResetEmail(auth, email)),
     logout: () => A.signOut(auth),
-    definirStatus: (uid, status) => F.updateDoc(F.doc(db, 'usuarios', uid), { status }),
+    atualizarUsuario: (uid, mudancas) => F.updateDoc(F.doc(db, 'usuarios', uid), mudancas),
   };
 }

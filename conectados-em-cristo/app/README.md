@@ -9,10 +9,13 @@ instalado na tela inicial ("Adicionar à tela de início").
 - Quem quer usar abre o app e faz o **cadastro** (nome, e-mail e senha) ou
   entra com Google.
 - O cadastro fica **aguardando aprovação**; até lá a pessoa só vê essa tela.
-- O Adm vê os pedidos em **Conta → Cadastros** (com aviso na tela inicial e um
-  número no ícone *Conta*) e toca em **Aprovar** ou **Recusar**. Assim que é
-  aprovado, o hinário abre sozinho no celular da pessoa.
-- O Adm também pode **remover o acesso** de quem já foi aprovado.
+- Os admins veem os pedidos em **Conta → Usuários** (com aviso na tela inicial e
+  um número no ícone *Conta*) e aprovam como **membro** ou **admin**, ou recusam.
+  Assim que é aprovado, o hinário abre sozinho no celular da pessoa.
+- A qualquer momento um admin pode **trocar** alguém entre membro e admin ou
+  **remover o acesso**.
+- **Proprietário:** `rhuan.4b@gmail.com`, entrando com Google. É sempre admin e
+  ninguém pode rebaixá-lo.
 
 **Para todos**
 - Lista e busca dos hinos (nome, número, cantor ou trecho da letra)
@@ -28,7 +31,7 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Funciona sem internet** depois de aberto uma vez (o áudio precisa de internet)
 
 **Para o Adm** (entra pelo link *Acesso do Adm*, na tela de entrada, com usuário e senha)
-- Aprovar, recusar e remover cadastros
+- Aprovar cadastros, definir quem é membro ou admin, remover acesso
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
@@ -73,3 +76,5 @@ Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 | `seed.js` | Repertório inicial (41 hinos) |
 | `sw.js`, `manifest.webmanifest` | Instalação e funcionamento offline |
 | `firestore.rules` | Regras de segurança do banco |
+| `firebase.json` | Configuração da hospedagem (Firebase Hosting) |
+| `../../.github/workflows/deploy-hinario.yml` | Publicação automática pelo GitHub |

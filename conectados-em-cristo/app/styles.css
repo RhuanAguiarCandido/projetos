@@ -244,3 +244,7 @@ body.bloqueado { padding-bottom: 24px; }
   content: attr(data-badge); position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px;
   border-radius: 999px; background: var(--vinho); color: var(--areia); font-size: 11px; font-weight: 700; display: grid; place-items: center; opacity: 1;
 }
+.seg { display: inline-flex; border: 1.5px solid var(--preto); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+.seg button.on { background: var(--preto); color: var(--areia); }
+.linha.cadastro .acoes { flex-wrap: wrap; align-items: center; }

@@ -1,0 +1,35 @@
+# Publica o Hinário no Firebase Hosting (e as regras do Firestore) a cada
+# alteração em conectados-em-cristo/app na branch main.
+#
+# Precisa, em Settings → Secrets and variables → Actions do repositório:
+#   - Variable  FIREBASE_PROJECT_ID       → ID do projeto (ex.: conectados-em-cristo)
+#   - Secret    FIREBASE_SERVICE_ACCOUNT  → conteúdo do JSON da conta de serviço
+# Veja conectados-em-cristo/app/SETUP.md, passo 5.
+name: Publicar Hinário
+
+on:
+  push:
+    branches: [main]
+    paths: ['conectados-em-cristo/app/**']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.FIREBASE_PROJECT_ID != '' }}
+    defaults:
+      run:
+        working-directory: conectados-em-cristo/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Credenciais
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Publicar (hosting + regras)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@13 deploy --only hosting,firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive

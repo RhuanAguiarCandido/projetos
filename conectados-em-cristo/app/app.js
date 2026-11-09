@@ -534,7 +534,7 @@ function telaConta() {
     html: `
     <h2 class="secao">Conta</h2>
     <div class="cartao">
-      <div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)}${state.isAdmin ? ' · <span class="selo">Adm</span>' : ''}</small></div></div>
+      <div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)} · <span class="selo">${state.isDono ? 'Proprietário' : state.isAdmin ? 'Admin' : 'Membro'}</span></small></div></div>
       <button class="btn" data-act="logout">Sair</button>
       ${state.modo === 'demo' ? '<p class="dica">Modo demonstração: os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>' : ''}
     </div>
@@ -549,7 +549,7 @@ function telaConta() {
     ${state.isAdmin ? `
     <h3 class="secao">Administração</h3>
     <div class="cartao botoes col">
-      <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Cadastros${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
+      <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Usuários${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
       <a class="btn" href="#/editar/novo">+ Adicionar hino novo</a>
       <a class="btn" href="#/ordem">Organizar numeração</a>
       <a class="btn" href="#/agenda">Marcar hinos dos cultos</a>
@@ -560,29 +560,42 @@ function telaConta() {
 }
 
 function telaCadastros() {
-  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode ver os cadastros.</p>' };
+  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode ver os usuários.</p>' };
   const aba = ui.abaCadastros || 'pendente';
-  const grupos = { pendente: 'Aguardando', aprovado: 'Aprovados', recusado: 'Recusados' };
-  const lista = state.usuarios.filter((u) => u.status === aba).sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+  const grupos = {
+    pendente: ['Aguardando', (u) => u.status === 'pendente'],
+    membro: ['Membros', (u) => u.status === 'aprovado' && u.papel !== 'admin' && !u.dono],
+    admin: ['Admins', (u) => u.status === 'aprovado' && (u.papel === 'admin' || u.dono)],
+    recusado: ['Recusados', (u) => u.status === 'recusado'],
+  };
+  const lista = state.usuarios.filter(grupos[aba][1]).sort((x, y) => (y.dono - x.dono) || (y.criadoEm || 0) - (x.criadoEm || 0));
   const quando = (t) => (t ? new Date(t).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : '');
-  const botoes = (u) => ({
-    pendente: `<button class="btn pequeno primario" data-act="status" data-uid="${u.uid}" data-v="aprovado">Aprovar</button>
-               <button class="btn pequeno perigo" data-act="status" data-uid="${u.uid}" data-v="recusado">Recusar</button>`,
-    aprovado: `<button class="btn pequeno perigo" data-act="status" data-uid="${u.uid}" data-v="recusado" data-confirma="1">Remover acesso</button>`,
-    recusado: `<button class="btn pequeno" data-act="status" data-uid="${u.uid}" data-v="aprovado">Aprovar</button>`,
-  }[u.status]);
+  const eu = (u) => u.uid === state.user?.uid;
+  const btn = (u, rotulo, mud, cls = '', confirma = '') =>
+    `<button class="btn pequeno ${cls}" data-act="usuario" data-uid="${u.uid}" data-mud='${JSON.stringify(mud)}' ${confirma ? `data-confirma="${esc(confirma)}"` : ''}>${rotulo}</button>`;
+  const acoesDe = (u) => {
+    if (u.dono) return '<span class="selo">Proprietário</span>';
+    if (eu(u)) return '<span class="dica">você</span>';
+    if (u.status === 'pendente') return btn(u, 'Aprovar como membro', { status: 'aprovado', papel: 'membro' }, 'primario')
+      + btn(u, 'Aprovar como admin', { status: 'aprovado', papel: 'admin' }) + btn(u, 'Recusar', { status: 'recusado' }, 'perigo');
+    if (u.status === 'recusado') return btn(u, 'Aprovar como membro', { status: 'aprovado', papel: 'membro' });
+    const papel = `<div class="seg">
+        <button class="${u.papel !== 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"membro"}'>Membro</button>
+        <button class="${u.papel === 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"admin"}' data-confirma="Tornar ${esc(u.nome)} admin? Admins podem editar hinos, cultos e usuários.">Admin</button>
+      </div>`;
+    return papel + btn(u, 'Remover acesso', { status: 'recusado', papel: 'membro' }, 'perigo', `Remover o acesso de ${u.nome} ao hinário?`);
+  };
   return {
     html: `
-    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Cadastros</h2><small>Aprove quem pode usar o hinário</small></div></div></div>
-    <div class="filtros">${Object.entries(grupos).map(([k, n]) => {
-      const q = state.usuarios.filter((u) => u.status === k).length;
-      return `<button class="chip ${aba === k ? 'on' : ''}" data-act="abaCadastros" data-v="${k}">${n} (${q})</button>`;
-    }).join('')}</div>
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Usuários</h2><small>Aprove cadastros e defina membros e admins</small></div></div></div>
+    <div class="filtros">${Object.entries(grupos).map(([k, [n, f]]) =>
+      `<button class="chip ${aba === k ? 'on' : ''}" data-act="abaCadastros" data-v="${k}">${n} (${state.usuarios.filter(f).length})</button>`).join('')}</div>
     <div class="lista">${lista.length ? lista.map((u) => `<div class="linha cadastro">
         <span class="num avatar">${esc((u.nome || '?').trim()[0].toUpperCase())}</span>
         <span class="info"><b>${esc(u.nome)}</b><small>${esc(u.email)}${u.criadoEm ? ` · ${quando(u.criadoEm)}` : ''}</small></span>
-        <span class="acoes">${botoes(u)}</span></div>`).join('')
-      : `<p class="vazio">${aba === 'pendente' ? 'Nenhum cadastro aguardando aprovação.' : 'Ninguém aqui.'}</p>`}</div>`,
+        <span class="acoes">${acoesDe(u)}</span></div>`).join('')
+      : `<p class="vazio">${aba === 'pendente' ? 'Nenhum cadastro aguardando aprovação.' : 'Ninguém aqui.'}</p>`}</div>
+    ${state.modo === 'demo' ? '' : '<p class="dica">A conta fixa "admin" (usuário e senha) não aparece nesta lista.</p>'}`,
   };
 }
 
@@ -748,10 +761,13 @@ const acoes = {
   async logout() { fecharPlayer(); await api.logout(); location.hash = '#/'; render(true); },
   portal(el) { ui.portal = el.dataset.v; render(true); },
   abaCadastros(el) { ui.abaCadastros = el.dataset.v; render(true); },
-  async status(el) {
-    if (el.dataset.confirma && !confirm('Remover o acesso desta pessoa ao hinário?')) return;
-    await api.definirStatus(el.dataset.uid, el.dataset.v);
-    toast(el.dataset.v === 'aprovado' ? 'Cadastro aprovado.' : 'Acesso recusado.');
+  async usuario(el) {
+    if (el.dataset.confirma && !confirm(el.dataset.confirma)) return;
+    const mud = JSON.parse(el.dataset.mud);
+    try {
+      await api.atualizarUsuario(el.dataset.uid, mud);
+      toast(mud.status === 'recusado' ? 'Acesso removido.' : mud.status === 'aprovado' ? 'Cadastro aprovado.' : mud.papel === 'admin' ? 'Agora é admin.' : 'Agora é membro.');
+    } catch (e) { toast(e.message || 'Não foi possível alterar.'); }
   },
 };
 

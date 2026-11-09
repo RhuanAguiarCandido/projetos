@@ -53,7 +53,9 @@ function render(forcar = false) {
   const { partes, params } = rota();
   const chave = location.hash;
   // não redesenha formulários enquanto o Adm digita
-  if (!forcar && chave === telaAtual && $('#view').dataset.form === '1') return;
+  const f = $('#view').dataset.form;
+  const digitando = $('#view').contains(document.activeElement) && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (!forcar && chave === telaAtual && (f === '1' || (f === 'foco' && digitando))) return;
   telaAtual = chave;
 
   let v;
@@ -68,7 +70,7 @@ function render(forcar = false) {
 
   const view = $('#view');
   const scroll = window.scrollY;
-  view.dataset.form = v.form ? '1' : '0';
+  view.dataset.form = v.form === true ? '1' : (v.form || '0');
   view.innerHTML = (state.erro ? `<div class="aviso">${esc(state.erro)}</div>` : '') + v.html;
   if (v.depois) v.depois();
   if (!forcar) window.scrollTo(0, scroll);
@@ -436,13 +438,20 @@ function telaConta() {
     <h2 class="secao">Conta</h2>
     <div class="cartao">
       ${demo ? `<p><b>Modo demonstração.</b> Os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>
-        ${state.isAdmin
-          ? '<p>Você está como <b>Adm</b>.</p><button class="btn" data-act="logout">Sair do modo Adm</button>'
-          : '<button class="btn primario" data-act="login">Entrar como Adm (demonstração)</button>'}`
+        ${state.isAdmin ? '<p>Você está como <span class="selo">Adm</span>.</p><button class="btn" data-act="logout">Sair do Adm</button>' : ''}`
       : u ? `<div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)}${state.isAdmin ? ' · <span class="selo">Adm</span>' : ''}</small></div></div>
         <button class="btn" data-act="logout">Sair</button>`
       : `<p>Entre para salvar seus favoritos e grifos em qualquer aparelho.</p><button class="btn primario" data-act="login">Entrar com Google</button>`}
     </div>
+
+    ${state.isAdmin ? '' : `
+    <h3 class="secao">Acesso do Adm</h3>
+    <form id="form-adm" class="cartao form">
+      <label class="campo">Usuário<input name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="campo">Senha<input name="senha" type="password" autocomplete="current-password" required></label>
+      ${!demo && u ? '<p class="dica">Ao entrar como Adm, sua conta Google sai deste aparelho.</p>' : ''}
+      <div class="botoes"><button class="btn primario" type="submit">Entrar como Adm</button></div>
+    </form>`}
 
     <h3 class="secao">Leitura</h3>
     <div class="cartao">
@@ -460,6 +469,22 @@ function telaConta() {
       ${!state.hinos.length ? '<button class="btn" data-act="importar">Importar repertório inicial (41 hinos)</button>' : ''}
     </div>` : ''}
     <p class="rodape">Hinário Conectados em Cristo · ${state.hinos.length} hinos</p>`,
+    form: 'foco',
+    depois() {
+      $('#form-adm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        document.activeElement?.blur();
+        try {
+          await api.loginAdm(f.usuario, f.senha);
+          toast('Você entrou como Adm.');
+          render(true);
+        } catch (err) {
+          toast(err.message === 'bloqueado' ? 'Muitas tentativas. Espere alguns minutos.' : 'Usuário ou senha incorretos.');
+          e.target.senha.value = '';
+        }
+      });
+    },
   };
 }
 

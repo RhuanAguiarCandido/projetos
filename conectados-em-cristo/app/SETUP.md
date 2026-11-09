@@ -5,7 +5,8 @@ Leva uns 20 minutos e é gratuito para o tamanho do grupo (plano Spark do Fireba
 ## 1. Criar o projeto no Firebase
 1. Acesse <https://console.firebase.google.com> e clique em **Adicionar projeto**
    (ex.: `conectados-em-cristo`). O Google Analytics pode ficar desligado.
-2. Em **Criação → Authentication → Começar**, ative o provedor **Google**.
+2. Em **Criação → Authentication → Começar**, ative os provedores **Google**
+   (para os jovens) e **E-mail/senha** (para o Adm).
 3. Em **Criação → Firestore Database → Criar banco de dados**, escolha a região
    `southamerica-east1 (São Paulo)` e o modo **produção**.
 4. Na aba **Regras** do Firestore, apague o conteúdo, cole o arquivo
@@ -17,10 +18,22 @@ Leva uns 20 minutos e é gratuito para o tamanho do grupo (plano Spark do Fireba
 2. Copie o objeto `firebaseConfig` que aparece e cole em [`config.js`](config.js)
    no lugar de `null`.
 
-## 3. Definir quem é Adm
-1. No Firestore, crie a coleção **`admins`**.
-2. Para cada Adm, adicione um documento cujo **ID é o e-mail Google** da pessoa
-   (ex.: `rhuan.4b@gmail.com`). Pode deixar um campo qualquer, como `nome`.
+## 3. Criar o acesso do Adm (usuário `admin`)
+No app, o Adm entra em **Conta → Acesso do Adm** com o usuário `admin` e a senha
+combinada. Por trás, isso usa uma conta de e-mail no Firebase:
+
+1. Em **Authentication → Usuários → Adicionar usuário**:
+   - E-mail: `admin@hinario-conectados.app` (o mesmo de `ADMIN_EMAIL` em `config.js`;
+     não precisa ser um e-mail que existe)
+   - Senha: **a senha do Adm seguida de `-cec`** (ex.: se a senha fosse `abc`,
+     cadastre `abc-cec`). O Firebase exige 6 caracteres ou mais; o app soma o
+     `-cec` sozinho, então o Adm digita só a senha normal.
+2. No Firestore, crie a coleção **`admins`** e, dentro dela, um documento com
+   **ID `admin@hinario-conectados.app`** (pode ter um campo qualquer, como `nome`).
+   É isso que libera as funções de Adm.
+
+Para trocar a senha depois: em *Authentication → Usuários*, redefina a senha da
+conta (lembrando do `-cec` no final).
 
 ## 4. Publicar o app
 Qualquer hospedagem de site estático serve. Duas opções simples:
@@ -35,7 +48,7 @@ Depois de publicar, em **Authentication → Configurações → Domínios autori
 confira se o endereço do site está na lista.
 
 ## 5. Primeiro acesso
-1. Abra o app, vá em **Conta → Entrar com Google** com o e-mail de Adm.
+1. Abra o app e vá em **Conta → Acesso do Adm** (usuário `admin`).
 2. Clique em **Importar repertório inicial (41 hinos)**.
 3. Mande o link para os jovens. No celular: menu do navegador →
    **Adicionar à tela de início**.

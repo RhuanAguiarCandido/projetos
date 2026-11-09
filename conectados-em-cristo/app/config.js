@@ -16,3 +16,9 @@
 // };
 
 export const firebaseConfig = null;
+
+// Acesso do administrador: usuário + senha (tela Conta → "Acesso do Adm").
+// No modo online, o usuário abaixo entra com a conta de e-mail ADMIN_EMAIL,
+// criada no Firebase Authentication (veja SETUP.md, passo 3).
+export const ADMIN_USUARIO = 'admin';
+export const ADMIN_EMAIL = 'admin@hinario-conectados.app';

@@ -18,7 +18,7 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Tela sempre acesa** enquanto a letra está aberta
 - **Funciona sem internet** depois de aberto uma vez (o áudio precisa de internet)
 
-**Para o Adm**
+**Para o Adm** (entra em *Conta → Acesso do Adm* com usuário e senha)
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
@@ -36,7 +36,7 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-Em **Conta → Entrar como Adm (demonstração)** dá para testar as funções de Adm.
+Para as funções de Adm: **Conta → Acesso do Adm**, com o usuário e a senha do Adm.
 
 Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 [SETUP.md](SETUP.md).

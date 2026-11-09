@@ -1,5 +1,5 @@
 // Camada de dados: Firebase (online, compartilhado) ou modo demonstração (localStorage).
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, ADMIN_USUARIO, ADMIN_EMAIL } from './config.js';
 import { SEED } from './seed.js';
 
 export const state = {
@@ -12,6 +12,15 @@ export const state = {
   pronto: false,
   erro: null,
 };
+
+// O Firebase exige senha com 6+ caracteres; este sufixo é somado à senha digitada.
+const SUFIXO_SENHA = '-cec';
+// Modo demonstração: só o hash SHA-256 da senha do Adm fica no código, nunca a senha.
+const HASH_SENHA_DEMO = '1118ebe7618c13369a6a50e238ab3d3953e271c22e9614c72f5ebd5c8060d7d0';
+async function sha256(t) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
 
 const listeners = new Set();
 export const onChange = (f) => listeners.add(f);
@@ -63,6 +72,10 @@ export const api = {
     await impl.putPerfil(state.perfil);
   },
   login: () => impl.login(),
+  async loginAdm(usuario, senha) {
+    if (usuario.trim().toLowerCase() !== ADMIN_USUARIO || !senha) throw new Error('credenciais');
+    await impl.loginAdm(senha);
+  },
   logout: () => impl.logout(),
   importarRepertorio: () => api.salvarHinos(clone(SEED)),
 };
@@ -90,7 +103,11 @@ function demo() {
   };
   return {
     putHinos: save, delHino: save, putCulto: save, delCulto: save, putPerfil: save,
-    login() { state.isAdmin = true; save(); emit(); },   // no demo, "entrar" = virar Adm
+    login() {},
+    async loginAdm(senha) {
+      if ((await sha256(senha)) !== HASH_SENHA_DEMO) throw new Error('credenciais');
+      state.isAdmin = true; save(); emit();
+    },
     logout() { state.isAdmin = false; save(); emit(); },
   };
 }
@@ -150,6 +167,10 @@ async function firebase() {
     delCulto: (data) => F.deleteDoc(F.doc(db, 'cultos', data)),
     putPerfil: (p) => state.user && F.setDoc(F.doc(db, 'usuarios', state.user.uid), p),
     login: () => A.signInWithPopup(auth, new A.GoogleAuthProvider()),
+    async loginAdm(senha) {
+      try { await A.signInWithEmailAndPassword(auth, ADMIN_EMAIL, senha + SUFIXO_SENHA); }
+      catch (e) { throw new Error(e.code === 'auth/too-many-requests' ? 'bloqueado' : 'credenciais'); }
+    },
     logout: () => A.signOut(auth),
   };
 }

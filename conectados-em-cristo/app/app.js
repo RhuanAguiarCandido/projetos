@@ -23,6 +23,71 @@ const pref = {
 const CORES = [['#FFF176', 'Amarelo'], ['#A5E8A0', 'Verde'], ['#F8BBD9', 'Rosa'], ['#A7D3F5', 'Azul'], ['#FFCC80', 'Laranja'], ['#D7B8F3', 'Lilás']];
 const PARTES = { todos: 'Todos', masc: 'Solo masculino', fem: 'Solo feminino' };
 
+// ---------------- aparência (cada usuário escolhe) ----------------
+// Cada tema define todas as cores do app (variáveis do styles.css):
+//   preto = cabeçalho, barra de baixo e números · areia = texto sobre o cabeçalho e fundos suaves
+//   fundo = fundo da tela · cartao = listas e caixas · vinho = destaque (botões, títulos)
+const TEMAS = {
+  // ---- claros ----
+  areia:    { nome: 'Areia (padrão)', preto: '#000000', areia: '#ECD3B5', fundo: '#F8EEE2', cartao: '#FFFDF9', linha: '#E3CDB1', suave: '#D9BC98', texto: '#1B1414', textoSuave: '#6B5A4C', vinho: '#600F1E' },
+  claro:    { nome: 'Claro',          preto: '#111111', areia: '#E8E8EA', fundo: '#F4F4F5', cartao: '#FFFFFF', linha: '#E2E2E6', suave: '#CFCFD4', texto: '#18181B', textoSuave: '#63636B', vinho: '#600F1E' },
+  vinho:    { nome: 'Vinho',          preto: '#3A0912', areia: '#F3D9CF', fundo: '#F7ECEA', cartao: '#FFFAF9', linha: '#E8CFCB', suave: '#D7A9A2', texto: '#2A1215', textoSuave: '#7A5550', vinho: '#7D1426' },
+  oceano:   { nome: 'Oceano',         preto: '#0B2545', areia: '#CFE3F3', fundo: '#EEF4FA', cartao: '#FFFFFF', linha: '#D3E1EE', suave: '#A9C3DB', texto: '#0E1B2C', textoSuave: '#4E6178', vinho: '#1D6FA5' },
+  floresta: { nome: 'Floresta',       preto: '#1B3A2B', areia: '#D8E6D3', fundo: '#F1F5EF', cartao: '#FFFFFF', linha: '#D5E0D0', suave: '#AFC7A8', texto: '#14231B', textoSuave: '#56685C', vinho: '#2F6B45' },
+  lavanda:  { nome: 'Lavanda',        preto: '#2E2346', areia: '#E3DAF2', fundo: '#F5F2FA', cartao: '#FFFFFF', linha: '#E1D9EE', suave: '#C2B3DD', texto: '#1F1830', textoSuave: '#665C7A', vinho: '#6B4FA0' },
+  porDoSol: { nome: 'Pôr do sol',     preto: '#3D1F12', areia: '#F9D9C3', fundo: '#FFF4EC', cartao: '#FFFFFF', linha: '#F1D9C7', suave: '#E3B597', texto: '#2B160C', textoSuave: '#7A5847', vinho: '#C2502A' },
+  rosa:     { nome: 'Rosa',           preto: '#3A1328', areia: '#F6D3E2', fundo: '#FCF1F5', cartao: '#FFFFFF', linha: '#F0D5E0', suave: '#E2AFC4', texto: '#2A0F1D', textoSuave: '#7C5468', vinho: '#B0306A' },
+  cafe:     { nome: 'Café',           preto: '#2B1D14', areia: '#E6D3C2', fundo: '#F4EDE6', cartao: '#FFFCF8', linha: '#E3D5C8', suave: '#C9AE95', texto: '#24180F', textoSuave: '#6F5B4B', vinho: '#8A5A3B' },
+  // ---- escuros ----
+  noite:    { nome: 'Noite',          escuro: true, preto: '#000000', areia: '#E9D6BE', fundo: '#121010', cartao: '#1E1A18', linha: '#352D28', suave: '#4A3F36', texto: '#F1E6D9', textoSuave: '#B3A491', vinho: '#C2485A' },
+  grafite:  { nome: 'Grafite',        escuro: true, preto: '#0B0C0E', areia: '#D6E4F0', fundo: '#16181C', cartao: '#22252B', linha: '#33373F', suave: '#454B55', texto: '#E8ECF1', textoSuave: '#9AA3AF', vinho: '#2C72AD' },
+  realeza:  { nome: 'Azul e dourado', escuro: true, preto: '#070D18', areia: '#F0DFAF', fundo: '#0E1726', cartao: '#16233A', linha: '#24344F', suave: '#33476A', texto: '#EEF1F6', textoSuave: '#9FADC4', vinho: '#9A6B12' },
+  // ---- acessibilidade ----
+  contraste:{ nome: 'Alto contraste', preto: '#000000', areia: '#FFE600', fundo: '#FFFFFF', cartao: '#FFFFFF', linha: '#000000', suave: '#000000', texto: '#000000', textoSuave: '#222222', vinho: '#8B0000' },
+};
+const GRUPOS_TEMAS = [['Claros', ['areia', 'claro', 'vinho', 'oceano', 'floresta', 'lavanda', 'porDoSol', 'rosa', 'cafe']], ['Escuros', ['noite', 'grafite', 'realeza']], ['Acessibilidade', ['contraste']]];
+const DESTAQUES = [['#600F1E', 'Vinho'], ['#1E4E8C', 'Azul'], ['#1F6B45', 'Verde'], ['#5B2A86', 'Roxo'], ['#B4501A', 'Laranja'], ['#B0306A', 'Rosa']];
+const FONTES_LETRA = {
+  sans: ['Padrão', 'Inter, system-ui, sans-serif'],
+  serif: ['Serifada', 'Georgia, "Times New Roman", serif'],
+  redonda: ['Arredondada', '"Trebuchet MS", "Segoe UI", system-ui, sans-serif'],
+};
+const APARENCIA_PADRAO = { tema: 'areia', destaque: '', fonteLetra: 'sans' };
+const aparenciaAtual = () => ({ ...APARENCIA_PADRAO, ...pref.get('aparencia', {}) });
+
+function aplicarAparencia(a) {
+  const r = document.documentElement;
+  const t = TEMAS[a.tema] || TEMAS.areia;
+  const vars = {
+    '--preto': t.preto, '--areia': t.areia, '--areia-claro': t.fundo, '--branco': t.cartao, '--linha': t.linha,
+    '--areia-escuro': t.suave, '--texto': t.texto, '--texto-suave': t.textoSuave,
+    '--tinta': t.escuro ? t.texto : '#000000', '--vinho': a.destaque || t.vinho,
+  };
+  Object.entries(vars).forEach(([k, v]) => r.style.setProperty(k, v));
+  r.dataset.tema = TEMAS[a.tema] ? a.tema : 'areia';
+  r.dataset.escuro = t.escuro ? '1' : '0';
+  r.style.setProperty('--fonte-letra', (FONTES_LETRA[a.fonteLetra] || FONTES_LETRA.sans)[1]);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', t.preto);
+}
+aplicarAparencia(aparenciaAtual());
+
+async function mudarAparencia(mudanca) {
+  const a = { ...aparenciaAtual(), ...mudanca };
+  pref.set('aparencia', a);
+  aplicarAparencia(a);
+  render(true);
+  if (state.user) { state.perfil.aparencia = a; await api.salvarPerfil(); } // vale em todos os aparelhos
+}
+// quando o perfil chega do servidor (outro aparelho), aplica a aparência salva lá
+function sincronizarAparencia() {
+  const remota = state.perfil?.aparencia;
+  if (!remota) return;
+  if (JSON.stringify({ ...APARENCIA_PADRAO, ...remota }) !== JSON.stringify(aparenciaAtual())) {
+    pref.set('aparencia', remota);
+    aplicarAparencia(aparenciaAtual());
+  }
+}
+
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
@@ -71,6 +136,7 @@ function render(forcar = false) {
   else if (partes[0] === 'conta') v = telaConta();
   else if (partes[0] === 'editar' && partes[1]) v = telaEditarHino(partes[1]);
   else if (partes[0] === 'ordem') v = telaOrdem();
+  else if (partes[0] === 'aparencia') v = telaAparencia();
   else v = telaInicio();
 
   const view = $('#view');
@@ -602,8 +668,9 @@ function telaConta() {
       ${state.modo === 'demo' ? '<p class="dica">Modo demonstração: os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>' : ''}
     </div>
 
-    <h3 class="secao">Leitura</h3>
+    <h3 class="secao">Leitura e aparência</h3>
     <div class="cartao">
+      <a class="btn largo" href="#/aparencia" style="margin:0 0 8px">🎨 Cores do app e fonte da letra</a>
       <div class="linha-pref">Tamanho da letra
         <span><button class="icone" data-act="fonte" data-d="-2">A−</button> <b>${pref.get('fonte', 20)}</b> <button class="icone" data-act="fonte" data-d="2">A+</button></span></div>
       <label class="linha-pref">Mostrar meus grifos <input type="checkbox" data-act="verMeus" ${pref.get('verMeus', true) ? 'checked' : ''}></label>
@@ -666,6 +733,47 @@ function telaCadastros() {
         <span class="acoes">${acoesDe(u)}</span></div>`).join('')
       : `<p class="vazio">${aba === 'pendente' ? 'Nenhum cadastro aguardando aprovação.' : 'Ninguém aqui.'}</p>`}</div>
 `,
+  };
+}
+
+function telaAparencia() {
+  const a = aparenciaAtual();
+  const fonte = pref.get('fonte', 20);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Aparência</h2><small>Só muda no seu app. Fica salvo na sua conta.</small></div></div></div>
+
+    <h3 class="secao">Tema</h3>
+    ${GRUPOS_TEMAS.map(([grupo, chaves]) => `<p class="grupo-temas">${grupo}</p>
+    <div class="temas">${chaves.map((k) => { const t = TEMAS[k]; return `
+      <button class="tema-op ${a.tema === k ? 'on' : ''}" data-act="tema" data-v="${k}" aria-label="Tema ${t.nome}">
+        <span class="amostra">${[t.preto, t.fundo, t.vinho, t.areia].map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${t.nome}</b>
+      </button>`; }).join('')}</div>`).join('')}
+
+    <h3 class="secao">Cor de destaque</h3>
+    <p class="dica">Cada tema já vem com a sua. Troque só se quiser outra.</p>
+    <div class="cores">
+      <button class="cor ${!a.destaque ? 'on' : ''}" style="background:conic-gradient(${(TEMAS[a.tema] || TEMAS.areia).areia} 0 50%, ${(TEMAS[a.tema] || TEMAS.areia).vinho} 0)" title="Cor do próprio tema" data-act="destaque" data-v=""></button>
+      ${DESTAQUES.map(([c, n]) => `<button class="cor ${a.destaque === c ? 'on' : ''}" style="background:${c}" title="${n}" data-act="destaque" data-v="${c}"></button>`).join('')}
+      <label class="cor livre" title="Escolher outra cor"><input type="color" data-act="destaqueLivre" value="${a.destaque || '#600F1E'}">+</label>
+    </div>
+
+    <h3 class="secao">Letra dos hinos</h3>
+    <div class="filtros">${Object.entries(FONTES_LETRA).map(([k, [n, f]]) =>
+      `<button class="chip ${a.fonteLetra === k ? 'on' : ''}" style="font-family:${f.replace(/"/g, '&quot;')}" data-act="fonteLetra" data-v="${k}">${n}</button>`).join('')}</div>
+    <div class="linha-pref">Tamanho
+      <span><button class="icone" data-act="fonte" data-d="-2">A−</button> <b>${fonte}</b> <button class="icone" data-act="fonte" data-d="2">A+</button></span></div>
+
+    <h3 class="secao">Prévia</h3>
+    <div class="previa">
+      <div class="linha"><span class="num">07</span><span class="info"><b>Como Flecha <span class="novo">NOVO</span></b><small>Samuel Dias e Carol Braga</small></span></div>
+      <article class="letra" style="--fonte:${fonte}px">
+        <div class="estrofe grifada" style="--grifo:#FFF176"><span class="parte fem">Solo feminino</span><p>Uma estrofe grifada<br>aparece assim</p></div>
+        <div class="estrofe"><p>E uma estrofe sem grifo<br>fica desse jeito</p></div>
+      </article>
+      <div class="botoes"><span class="btn primario">Botão principal</span><span class="chip on">Selecionado</span></div>
+    </div>
+    <div class="botoes"><button class="btn" data-act="aparenciaPadrao">Voltar ao padrão</button></div>`,
   };
 }
 
@@ -824,6 +932,10 @@ const acoes = {
     await api.salvarHinos(mud);
     toast('Numeração organizada.');
   },
+  tema(el) { mudarAparencia({ tema: el.dataset.v, destaque: '' }); }, // cada tema vem com o seu destaque
+  destaque(el) { mudarAparencia({ destaque: el.dataset.v }); },
+  fonteLetra(el) { mudarAparencia({ fonteLetra: el.dataset.v }); },
+  aparenciaPadrao() { mudarAparencia({ ...APARENCIA_PADRAO }); toast('Aparência padrão restaurada.'); },
   async importar() { await api.importarRepertorio(); toast('Repertório importado.'); },
   baixarBackup() {
     const dados = api.backup(VERSAO.versao);
@@ -862,6 +974,7 @@ document.addEventListener('change', (e) => {
   if (el.matches('input[type=color][data-act=corLivre]')) aplicarGrifo(el.dataset.alvo, el.value);
   else if (el.matches('input[type=checkbox][data-act=verMeus]')) acoes.verMeus(el);
   else if (el.matches('input[type=file][data-act=restaurar]') && el.files[0]) restaurarArquivo(el);
+  else if (el.matches('input[type=color][data-act=destaqueLivre]')) mudarAparencia({ destaque: el.value });
 });
 
 async function restaurarArquivo(input) {
@@ -881,7 +994,7 @@ const VERSAO = {};
 fetch('version.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => { Object.assign(VERSAO, v); render(); }).catch(() => {});
 
 window.addEventListener('hashchange', () => { ui.sheet = null; render(true); window.scrollTo(0, 0); });
-onChange(() => render());
+onChange(() => { sincronizarAparencia(); render(); });
 
 init();
 render(true);

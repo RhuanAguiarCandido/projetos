@@ -24,6 +24,10 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Grifar estrofes**: toque numa estrofe e escolha a cor (6 cores prontas ou
   qualquer outra). Os grifos são de cada pessoa
 - **Favoritos** (☆)
+- **Aparência por pessoa** (*Conta → Cores do app*): 13 temas prontos (Areia, Claro,
+  Vinho, Oceano, Floresta, Lavanda, Pôr do sol, Rosa, Café, Noite, Grafite, Azul e
+  dourado, Alto contraste), cor de destaque e fonte da letra. Fica salvo na conta
+  e vale em todos os aparelhos da pessoa
 - **Agenda**: calendário com **cultos** (vinho) e **ensaios** (preto), com
   horário e observação. Cada um tem os hinos na ordem e **quem faz o solo** de
   cada hino; quem tem solo vê 🎤 no calendário, na tela inicial e no hino.

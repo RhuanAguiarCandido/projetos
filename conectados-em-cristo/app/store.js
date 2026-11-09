@@ -258,7 +258,7 @@ async function firebase(cfg) {
     // o próprio cadastro: aprovação, papel, favoritos e grifos chegam ao vivo
     parar.perfil = F.onSnapshot(ref, (d) => {
       const dados = d.data() || {};
-      state.perfil = { ...perfilVazio(), favoritos: dados.favoritos || [], grifos: dados.grifos || {}, vistos: dados.vistos || [], desde: dados.criadoEm || 0 };
+      state.perfil = { ...perfilVazio(), favoritos: dados.favoritos || [], grifos: dados.grifos || {}, vistos: dados.vistos || [], desde: dados.criadoEm || 0, aparencia: dados.aparencia || null };
       state.papel = admNato ? 'admin' : (dados.papel || 'membro');
       state.isAdmin = admNato || (dados.papel === 'admin' && dados.status === 'aprovado');
       state.status = state.isAdmin ? 'aprovado' : (dados.status || 'pendente');
@@ -290,7 +290,7 @@ async function firebase(cfg) {
     delHino: (id) => F.deleteDoc(F.doc(db, 'hinos', id)),
     putEvento: (e) => F.setDoc(F.doc(db, 'eventos', e.id), semId(e)),
     delEvento: (id) => F.deleteDoc(F.doc(db, 'eventos', id)),
-    putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {}, vistos: p.vistos || [] }),
+    putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {}, vistos: p.vistos || [], aparencia: p.aparencia || null }),
     entrarGoogle: () => tentar(async () => {
       const prov = new A.GoogleAuthProvider();
       prov.setCustomParameters({ prompt: 'select_account' });

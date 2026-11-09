@@ -33,7 +33,7 @@ PWA em HTML/CSS/JS puro (sem build, sem framework), módulos ES.
 - Papéis: proprietário (`rhuan.4b@gmail.com`, nunca rebaixável), admin, membro.
 - Firestore: `hinos/{id}`, `eventos/{id}` (cultos e ensaios: data, hora, tipo,
   titulo, obs, hinos:[{id, solistas:[{uid,nome}]}]), `usuarios/{uid}` (status,
-  papel, favoritos, grifos, vistos, criadoEm).
+  papel, favoritos, grifos, vistos, aparencia, criadoEm).
 - Selo NOVO: hino com `criadoEm` maior que o `criadoEm` do usuário e fora de `vistos`.
 - Visual: paleta Preto `#000000`, Areia `#ECD3B5`, Vinho `#600F1E`; fontes Anton + Inter.
 

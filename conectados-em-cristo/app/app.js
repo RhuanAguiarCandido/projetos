@@ -21,7 +21,7 @@ const pref = {
 };
 
 const CORES = [['#FFF176', 'Amarelo'], ['#A5E8A0', 'Verde'], ['#F8BBD9', 'Rosa'], ['#A7D3F5', 'Azul'], ['#FFCC80', 'Laranja'], ['#D7B8F3', 'Lilás']];
-const PARTES = { todos: 'Todos', masc: 'Solo masculino', fem: 'Solo feminino' };
+const PARTES = { todos: 'Todos', solo: 'Solo', masc: 'Solo masculino', fem: 'Solo feminino' };
 
 // ---------------- aparência (cada usuário escolhe) ----------------
 // Cada tema define todas as cores do app (variáveis do styles.css):

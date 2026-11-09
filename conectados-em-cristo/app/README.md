@@ -51,7 +51,7 @@ instalado na tela inicial ("Adicionar à tela de início").
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
   desligado em "Mostrar meus grifos")
-- Marcar **quem canta** cada estrofe: Todos, Solo masculino ou Solo feminino
+- Marcar **quem canta** cada estrofe: Todos, Solo, Solo masculino ou Solo feminino
 - Marcar cultos e ensaios no calendário, escolher os hinos e quem faz cada solo
 
 ## Como experimentar agora

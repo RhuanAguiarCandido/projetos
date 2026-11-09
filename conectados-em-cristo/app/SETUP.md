@@ -30,7 +30,7 @@ npm install -g firebase-tools
 firebase login                         # entre com rhuan.4b@gmail.com
 git clone https://github.com/rhuanaguiarcandido/projetos.git
 cd projetos
-git checkout claude/admiring-lovelace-ibx930
+git checkout claude/entrellun-video
 cd conectados-em-cristo/app
 firebase deploy --only hosting,firestore:rules
 ```
@@ -38,8 +38,8 @@ O projeto já está configurado no arquivo `.firebaserc`, então não precisa
 informar o ID.
 
 ### Opção B: publicação automática pelo GitHub
-Depois de configurada, toda alteração no app que chegar na branch `main` é
-publicada sozinha.
+Depois de configurada, toda alteração no app que chegar na branch principal
+(`claude/entrellun-video`) é publicada sozinha.
 
 1. No Firebase: **⚙ Configurações do projeto → Contas de serviço → Gerar nova
    chave privada**. Isso baixa um arquivo `.json`. **Ele é secreto: não cole no
@@ -51,7 +51,8 @@ publicada sozinha.
 3. No GitHub, repositório `projetos` → **Settings → Secrets and variables →
    Actions → New repository secret**: nome `FIREBASE_SERVICE_ACCOUNT`, valor:
    todo o conteúdo do `.json`.
-4. Junte a branch do app na `main` (pull request). A aba **Actions** mostra
+4. Junte a branch do app na branch principal do repositório
+   (`claude/entrellun-video`) com um pull request. A aba **Actions** mostra
    "Publicar Repertório"; dá para rodar à mão também (*Run workflow*).
 
 ## 4. Primeiro acesso

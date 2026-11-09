@@ -11,9 +11,10 @@ Não altere nada do app nesta etapa: só prepare e espere o pedido.
 
 ## 1. Sincronizar o repositório
 1. `git fetch origin --tags`.
-2. Escolha a branch de trabalho:
-   - se `origin/main` já contém `conectados-em-cristo/app/version.json`, use `main`;
-   - senão, use `claude/admiring-lovelace-ibx930` (onde o app foi criado).
+2. Escolha a branch de trabalho: a **branch principal** do repositório
+   (`git remote show origin | grep "HEAD branch"`; hoje é `claude/entrellun-video`),
+   desde que ela já tenha `conectados-em-cristo/app/version.json`. Se não tiver,
+   use `claude/admiring-lovelace-ibx930` (onde o app foi criado).
    Se a sessão já estiver numa branch designada pelo sistema, trabalhe nela, mas
    traga as mudanças da branch acima (`git merge origin/<branch>`) se estiver atrás.
 3. `git status`: se houver alterações não salvas que não são suas, **pare e

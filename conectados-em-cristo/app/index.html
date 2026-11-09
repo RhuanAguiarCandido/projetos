@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hinário Conectados</title>
+  <meta name="description" content="Hinário do Grupo de Jovens Conectados em Cristo">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon-192.png">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hinário">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="view"></main>
+
+  <div id="player" class="player" hidden>
+    <div class="player-barra"><span id="player-barra"></span></div>
+    <div class="player-corpo">
+      <div class="yt-mini"><div id="yt"></div></div>
+      <button class="player-info" data-act="playerIr">
+        <b id="player-titulo"></b><small id="player-tempo"></small>
+      </button>
+      <button class="icone" data-act="playerPular" data-s="-10" aria-label="Voltar 10 segundos">−10</button>
+      <button class="icone grande" id="player-play" data-act="playerPlay" aria-label="Tocar ou pausar">▶</button>
+      <button class="icone" data-act="playerPular" data-s="10" aria-label="Avançar 10 segundos">+10</button>
+      <button class="icone" data-act="playerFechar" aria-label="Fechar player">✕</button>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a href="#/" data-nav="inicio"><span>♫</span>Hinos</a>
+    <a href="#/agenda" data-nav="agenda"><span>▦</span>Agenda</a>
+    <a href="#/conta" data-nav="conta"><span>●</span>Conta</a>
+  </nav>
+
+  <div id="sheet" class="sheet" hidden></div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

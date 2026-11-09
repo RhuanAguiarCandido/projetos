@@ -1,5 +1,5 @@
 // Service worker: guarda o app no aparelho para abrir sem internet.
-const CACHE = 'hinario-v5';
+const CACHE = 'hinario-v6';
 const ARQUIVOS = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'config.js', 'seed.js',
   'manifest.webmanifest', 'img/logo.png', 'img/icon-192.png', 'img/icon-512.png',

@@ -39,9 +39,22 @@ const erro = (msg) => new ErroAcesso(msg);
 
 let impl;
 
+// Quando o app está publicado no Firebase Hosting, a configuração do projeto
+// vem do próprio servidor (/__/firebase/init.json) e não precisa estar no código.
+async function lerConfig() {
+  if (firebaseConfig && firebaseConfig.apiKey) return firebaseConfig;
+  if (!/\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) return null;
+  try {
+    const r = await fetch('/__/firebase/init.json', { cache: 'no-store' });
+    const c = r.ok ? await r.json() : null;
+    return c && c.apiKey ? c : null;
+  } catch { return null; }
+}
+
 export async function init() {
   try {
-    impl = firebaseConfig && firebaseConfig.apiKey ? await firebase() : demo();
+    const cfg = await lerConfig();
+    impl = cfg ? await firebase(cfg) : demo();
   } catch (e) {
     console.error(e);
     state.erro = 'Não foi possível conectar ao servidor. Usando o modo demonstração.';
@@ -155,14 +168,14 @@ function demo() {
 // =====================================================================
 // Modo online: Firebase Auth (Google) + Firestore
 // =====================================================================
-async function firebase() {
+async function firebase(cfg) {
   const B = 'https://www.gstatic.com/firebasejs/10.12.2/';
   const [{ initializeApp }, A, F] = await Promise.all([
     import(B + 'firebase-app.js'),
     import(B + 'firebase-auth.js'),
     import(B + 'firebase-firestore.js'),
   ]);
-  const app = initializeApp(firebaseConfig);
+  const app = initializeApp(cfg);
   const auth = A.getAuth(app);
   const db = F.initializeFirestore(app, {
     // guarda os dados no aparelho: o app abre as letras mesmo sem internet

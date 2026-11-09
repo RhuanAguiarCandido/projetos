@@ -1,19 +1,13 @@
 // Configuração do Firebase (banco de dados + login com Google).
+// Projeto: conectados-em-cristo-fe363
 //
-// Enquanto estiver `null`, o app roda em MODO DEMONSTRAÇÃO: tudo funciona,
-// mas os dados ficam salvos só no aparelho de quem está usando.
+// Publicado no Firebase Hosting (https://conectados-em-cristo-fe363.web.app),
+// o app lê a configuração sozinho do servidor; pode deixar `null` aqui.
 //
-// Para colocar no ar para o grupo todo, siga o passo a passo em SETUP.md e
-// cole aqui o objeto que o Firebase mostra, por exemplo:
-//
-// export const firebaseConfig = {
-//   apiKey: "AIza...",
-//   authDomain: "conectados-em-cristo.firebaseapp.com",
-//   projectId: "conectados-em-cristo",
-//   storageBucket: "conectados-em-cristo.appspot.com",
-//   messagingSenderId: "123456789",
-//   appId: "1:123456789:web:abc123"
-// };
+// Só é preciso preencher para rodar o app ligado ao Firebase fora do Hosting
+// (ex.: no seu computador). Nesse caso, cole o objeto que aparece em
+// Configurações do projeto → Seus apps → app Web.
+// Enquanto não houver configuração, o app roda em MODO DEMONSTRAÇÃO.
 
 export const firebaseConfig = null;
 

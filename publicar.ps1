@@ -32,8 +32,11 @@ Ok 'Tudo instalado.'
 
 # 2. Versão mais recente do GitHub
 Passo 'Baixando a versao mais recente do GitHub'
-if (git status --porcelain) {
-  Falhou 'tem arquivos alterados nesta pasta que nao foram salvos no GitHub.'
+# só arquivos do projeto contam (arquivos novos/temporários são ignorados)
+$alterados = git status --porcelain --untracked-files=no
+if ($alterados) {
+  Write-Host ($alterados | Out-String) -ForegroundColor Yellow
+  Falhou 'os arquivos acima foram alterados nesta pasta e nao estao no GitHub.'
 }
 git fetch origin --quiet
 if ($LASTEXITCODE -ne 0) { Falhou 'nao consegui falar com o GitHub. Confira a internet.' }

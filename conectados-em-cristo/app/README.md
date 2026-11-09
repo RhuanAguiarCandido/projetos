@@ -17,7 +17,11 @@ instalado na tela inicial ("Adicionar à tela de início").
   ninguém pode rebaixá-lo.
 
 **Para todos**
-- Lista e busca dos hinos (nome, número, cantor ou trecho da letra)
+- **Tela inicial** (aba *Início*): devocional do dia, próximo culto e ensaio e
+  atalhos para Hinos, Agenda, Novos e Favoritos
+- **Devocional do dia**: na tela inicial aparece só o **versículo**; tocando,
+  abre o devocional completo. Dá para ver os anteriores
+- Aba **Hinos**: lista e busca dos hinos (nome, número, cantor ou trecho da letra)
 - Letra na tela, com **A− / A+** para o tamanho da fonte (fica salvo)
 - Botões **▶ Voz** e **▶ Playback**: tocam só o áudio do YouTube num player
   pequeno na parte de baixo (sem abrir o vídeo em tela cheia)
@@ -38,6 +42,9 @@ instalado na tela inicial ("Adicionar à tela de início").
 
 **Para admins**
 - Aprovar pedidos de acesso, definir quem é membro ou admin, remover acesso
+- **Publicar devocional** (*Conta → Publicar devocional*): data, referência,
+  versículo e o devocional (opcional). Com data futura, fica agendado e aparece
+  sozinho no dia. Dá para editar e excluir
 - **Backup** em *Conta → Backup*: baixar um arquivo com hinos, cultos, ensaios e
   usuários; o proprietário pode restaurar a partir desse arquivo
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)

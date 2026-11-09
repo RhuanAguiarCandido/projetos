@@ -18,7 +18,8 @@ em linguagem simples (o dono não é programador).
 ## App Repertório (`conectados-em-cristo/app/`)
 PWA em HTML/CSS/JS puro (sem build, sem framework), módulos ES.
 
-- `app.js`: telas e ações (roteamento por hash `#/...`, delegação de cliques por `data-act`)
+- `app.js`: telas e ações (roteamento por hash `#/...`, delegação de cliques por `data-act`).
+  Abas: Início `#/` (painel + devocional), Hinos `#/hinos`, Agenda `#/agenda`, Conta `#/conta`
 - `store.js`: dados. Firebase (Auth Google + Firestore) quando publicado; senão
   **modo demonstração** em localStorage, com login Google simulado
 - `config.js`: `DONO_EMAIL`. A config do Firebase vem de `/__/firebase/init.json` no Hosting
@@ -32,7 +33,9 @@ PWA em HTML/CSS/JS puro (sem build, sem framework), módulos ES.
 - Login **só com Google**. Primeiro acesso fica "pendente" até um admin aprovar.
 - Papéis: proprietário (`rhuan.4b@gmail.com`, nunca rebaixável), admin, membro.
 - Firestore: `hinos/{id}`, `eventos/{id}` (cultos e ensaios: data, hora, tipo,
-  titulo, obs, hinos:[{id, solistas:[{uid,nome}]}]), `usuarios/{uid}` (status,
+  titulo, obs, hinos:[{id, solistas:[{uid,nome}]}]), `devocionais/{id}` (data,
+  referencia, versiculo, texto opcional, autor, criadoEm; aparece na tela inicial
+  o mais recente com data ≤ hoje), `usuarios/{uid}` (status,
   papel, favoritos, grifos, vistos, aparencia, criadoEm).
 - Selo NOVO: hino com `criadoEm` maior que o `criadoEm` do usuário e fora de `vistos`.
 - Visual: paleta Preto `#000000`, Areia `#ECD3B5`, Vinho `#600F1E`; fontes Anton + Inter.

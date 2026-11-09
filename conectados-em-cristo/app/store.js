@@ -10,6 +10,7 @@ import { SEED } from './seed.js';
 export const state = {
   hinos: [],
   eventos: [],         // cultos e ensaios: { id, data, hora, tipo, titulo, obs, hinos: [{ id, solistas: [{ uid, nome }] }] }
+  devocionais: [],     // { id, data, referencia, versiculo, texto, autor, criadoEm }
   user: null,          // { uid, nome, email, foto }
   isAdmin: false,
   isDono: false,       // proprietário (DONO_EMAIL)
@@ -86,6 +87,16 @@ export const api = {
     emit();
     await impl.delEvento(id);
   },
+  async salvarDevocional(d) {
+    upsert(state.devocionais, 'id', d);
+    emit();
+    await impl.putDevocional(d);
+  },
+  async excluirDevocional(id) {
+    state.devocionais = state.devocionais.filter((d) => d.id !== id);
+    emit();
+    await impl.delDevocional(id);
+  },
   async salvarPerfil() {
     emit();
     await impl.putPerfil(state.perfil);
@@ -97,7 +108,7 @@ export const api = {
   backup(versao) {
     return {
       app: 'repertorio-conectados', versao, exportadoEm: new Date().toISOString(), modo: state.modo,
-      hinos: clone(state.hinos), eventos: clone(state.eventos),
+      hinos: clone(state.hinos), eventos: clone(state.eventos), devocionais: clone(state.devocionais),
       usuarios: clone(state.usuarios), // só consulta: não é restaurado
     };
   },
@@ -110,7 +121,9 @@ export const api = {
     }
     for (let i = 0; i < dados.hinos.length; i += 400) await api.salvarHinos(dados.hinos.slice(i, i + 400));
     for (const e of dados.eventos) await api.salvarEvento(e);
-    return { hinos: dados.hinos.length, eventos: dados.eventos.length };
+    const devs = Array.isArray(dados.devocionais) ? dados.devocionais : []; // backups antigos não têm
+    for (const d of devs) await api.salvarDevocional(d);
+    return { hinos: dados.hinos.length, eventos: dados.eventos.length, devocionais: devs.length };
   },
 
   // ---- acesso (só Google) ----
@@ -139,6 +152,7 @@ function demo() {
   state.modo = 'demo';
   state.hinos = db.hinos;
   state.eventos = db.eventos;
+  state.devocionais = db.devocionais || (db.devocionais = []);
 
   const save = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch {} };
   const aplicar = () => {
@@ -161,9 +175,10 @@ function demo() {
   };
   aplicar();
 
-  const salvar = () => { db.hinos = state.hinos; db.eventos = state.eventos; save(); };
+  const salvar = () => { db.hinos = state.hinos; db.eventos = state.eventos; db.devocionais = state.devocionais; save(); };
   return {
     putHinos: salvar, delHino: salvar, putEvento: salvar, delEvento: salvar, putPerfil: save,
+    putDevocional: salvar, delDevocional: salvar,
     entrarGoogle(simulado) {
       const nome = String(simulado?.nome || '').trim();
       const email = normEmail(simulado?.email);
@@ -218,7 +233,11 @@ async function firebase(cfg) {
       state.eventos = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       emit();
     }, () => {});
-    parar.dados = () => { a(); b(); };
+    const c = F.onSnapshot(F.collection(db, 'devocionais'), (s) => {
+      state.devocionais = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+      emit();
+    }, () => {});
+    parar.dados = () => { a(); b(); c(); };
   };
   const ligarUsuarios = () => {
     if (parar.usuarios) return;
@@ -234,7 +253,7 @@ async function firebase(cfg) {
 
   await new Promise((pronto) => A.onAuthStateChanged(auth, async (u) => {
     Object.keys(parar).forEach(desligar);
-    Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], eventos: [] });
+    Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], eventos: [], devocionais: [] });
     if (!u) { emit(); pronto(); return; }
 
     state.user = { uid: u.uid, nome: u.displayName || u.email, email: u.email, foto: u.photoURL };
@@ -290,6 +309,8 @@ async function firebase(cfg) {
     delHino: (id) => F.deleteDoc(F.doc(db, 'hinos', id)),
     putEvento: (e) => F.setDoc(F.doc(db, 'eventos', e.id), semId(e)),
     delEvento: (id) => F.deleteDoc(F.doc(db, 'eventos', id)),
+    putDevocional: (d) => F.setDoc(F.doc(db, 'devocionais', d.id), semId(d)),
+    delDevocional: (id) => F.deleteDoc(F.doc(db, 'devocionais', id)),
     putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {}, vistos: p.vistos || [], aparencia: p.aparencia || null }),
     entrarGoogle: () => tentar(async () => {
       const prov = new A.GoogleAuthProvider();

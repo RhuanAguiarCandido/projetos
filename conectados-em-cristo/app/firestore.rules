@@ -29,6 +29,8 @@ service cloud.firestore {
     // Hinos e agenda (cultos e ensaios): aprovados leem; só admins alteram
     match /hinos/{id}   { allow read: if aprovado(); allow write: if adm(); }
     match /eventos/{id} { allow read: if aprovado(); allow write: if adm(); }
+    // Devocionais: aprovados leem; só admins publicam, editam e apagam
+    match /devocionais/{id} { allow read: if aprovado(); allow write: if adm(); }
 
     // Usuários
     match /usuarios/{uid} {

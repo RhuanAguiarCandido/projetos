@@ -137,6 +137,10 @@ function render(forcar = false) {
   else if (partes[0] === 'editar' && partes[1]) v = telaEditarHino(partes[1]);
   else if (partes[0] === 'ordem') v = telaOrdem();
   else if (partes[0] === 'aparencia') v = telaAparencia();
+  else if (partes[0] === 'hinos') v = telaHinos();
+  else if (partes[0] === 'devocionais' && partes[1]) v = telaEditarDevocional(partes[1]);
+  else if (partes[0] === 'devocionais') v = telaDevocionais();
+  else if (partes[0] === 'devocional' && partes[1]) v = telaDevocional(partes[1]);
   else v = telaInicio();
 
   const view = $('#view');
@@ -148,7 +152,8 @@ function render(forcar = false) {
 
   const pend = state.isAdmin ? state.usuarios.filter((x) => x.status === 'pendente').length : 0;
   $('.nav [data-nav=conta]').dataset.badge = pend || '';
-  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('ativo', a.dataset.nav === (partes[0] || 'inicio')));
+  const secao = { hino: 'hinos', editar: 'hinos', ordem: 'hinos', dia: 'agenda', evento: 'agenda', cadastros: 'conta', aparencia: 'conta', devocional: 'inicio', devocionais: 'inicio' }[partes[0]] || partes[0] || 'inicio';
+  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('ativo', a.dataset.nav === secao));
   manterTelaAcesa(partes[0] === 'hino');
   renderSheet();
 }
@@ -182,11 +187,32 @@ function htmlLista() {
   return l.map((h) => linhaHino(h)).join('');
 }
 
+// ---------------- devocionais ----------------
+const devocionaisPublicados = () => state.devocionais.filter((d) => d.data <= hojeISO()).sort((a, b) => b.data.localeCompare(a.data) || (b.criadoEm || 0) - (a.criadoEm || 0));
+const devocionalPorId = (id) => state.devocionais.find((d) => d.id === id);
+const paragrafos = (t) => esc(t).split(/\n\s*\n/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+
+function cardDevocional(d) {
+  const hoje = d.data === hojeISO();
+  const corpo = `
+      <small>${hoje ? 'Palavra de hoje' : `Palavra · ${esc(fmtData(d.data, { day: 'numeric', month: 'long' }))}`}</small>
+      <blockquote>“${esc(d.versiculo)}”</blockquote>
+      ${d.referencia ? `<cite>${esc(d.referencia)}</cite>` : ''}
+      ${d.texto ? '<span class="ler">Ler devocional →</span>' : ''}`;
+  // só vira link se tiver devocional para abrir
+  return d.texto
+    ? `<a class="card-devocional" href="#/devocional/${d.id}">${corpo}</a>`
+    : `<div class="card-devocional">${corpo}</div>`;
+}
+
+// ---------------- tela inicial: painel ----------------
 function telaInicio() {
   const pc = proximosEventos('culto')[0];
   const pe = proximosEventos('ensaio')[0];
   const card = [pc && cardEvento(pc, 'Próximo culto'), pe && cardEvento(pe, 'Próximo ensaio')]
     .filter(Boolean).sort().join('');
+  const dev = devocionaisPublicados()[0];
+  const novos = state.hinos.filter(ehNovo).length;
   return {
     html: `
     <header class="topo">
@@ -194,7 +220,23 @@ function telaInicio() {
       <div><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>
     </header>
     ${state.isAdmin && state.usuarios.some((u) => u.status === 'pendente') ? `<a class="aviso link" href="#/cadastros">👤 ${state.usuarios.filter((u) => u.status === 'pendente').length} cadastro(s) aguardando sua aprovação →</a>` : ''}
+    ${dev ? cardDevocional(dev) : (state.isAdmin ? '<a class="aviso link" href="#/devocionais/novo">📖 Nenhum devocional publicado ainda. Publicar o primeiro →</a>' : '')}
     ${card}
+    <div class="atalhos">
+      <a class="atalho" href="#/hinos"><b>♫</b><span>Hinos</span><small>${state.hinos.length} no repertório</small></a>
+      <a class="atalho" href="#/agenda"><b>▦</b><span>Agenda</span><small>Cultos e ensaios</small></a>
+      ${novos ? `<a class="atalho" href="#/hinos" data-act="irNovos"><b>✦</b><span>Novos</span><small>${novos} ${novos === 1 ? 'hino novo' : 'hinos novos'}</small></a>` : ''}
+      ${state.perfil.favoritos?.length ? `<a class="atalho" href="#/hinos" data-act="irFavoritos"><b>★</b><span>Favoritos</span><small>${state.perfil.favoritos.length} salvos</small></a>` : ''}
+    </div>
+    ${devocionaisPublicados().length > 1 ? '<a class="btn-link" href="#/devocionais">Ver devocionais anteriores</a>' : ''}`,
+  };
+}
+
+// ---------------- hinos: busca + lista ----------------
+function telaHinos() {
+  return {
+    html: `
+    <h2 class="secao">Hinos</h2>
     <div class="busca">
       <input id="busca" type="search" placeholder="Buscar por nome, número, cantor ou trecho" value="${esc(ui.busca)}" autocomplete="off">
     </div>
@@ -211,10 +253,80 @@ function telaInicio() {
   };
 }
 
+function telaDevocional(id) {
+  const d = devocionalPorId(id);
+  if (!d || (d.data > hojeISO() && !state.isAdmin)) return { html: '<p class="vazio">Devocional não encontrado. <a href="#/">Voltar</a></p>' };
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>Devocional</h2><small>${esc(fmtData(d.data))}</small></div></div>
+      ${state.isAdmin ? `<a class="btn pequeno" href="#/devocionais/${d.id}">Editar</a>` : ''}</div>
+    <article class="devocional">
+      <blockquote>“${esc(d.versiculo)}”</blockquote>
+      ${d.referencia ? `<cite>${esc(d.referencia)}</cite>` : ''}
+      ${d.texto ? `<div class="texto">${paragrafos(d.texto)}</div>` : ''}
+      ${d.autor ? `<p class="dica">Publicado por ${esc(d.autor)}</p>` : ''}
+    </article>
+    ${devocionaisPublicados().length > 1 ? '<a class="btn-link" href="#/devocionais">Ver devocionais anteriores</a>' : ''}`,
+  };
+}
+
+function telaDevocionais() {
+  const lista = state.isAdmin
+    ? [...state.devocionais].sort((a, b) => b.data.localeCompare(a.data))
+    : devocionaisPublicados();
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>Devocionais</h2><small>${state.isAdmin ? 'Publique e organize os devocionais' : 'Palavras anteriores'}</small></div></div></div>
+    ${state.isAdmin ? '<a class="btn primario largo" href="#/devocionais/novo" style="margin:0 0 12px">📖 Publicar devocional</a>' : ''}
+    <div class="lista">${lista.length ? lista.map((d) => `<a class="linha" href="${state.isAdmin ? `#/devocionais/${d.id}` : `#/devocional/${d.id}`}">
+        <span class="num data">${isoToDate(d.data).getDate()}<small>${fmtData(d.data, { month: 'short' }).replace('.', '')}</small></span>
+        <span class="info"><b>${esc(d.referencia || d.versiculo)}</b><small>${d.data > hojeISO() ? '⏰ agendado · ' : ''}${esc(d.versiculo)}</small></span>
+      </a>`).join('') : '<p class="vazio">Nenhum devocional ainda.</p>'}</div>`,
+  };
+}
+
+function telaEditarDevocional(id) {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só admins publicam devocionais.</p>' };
+  const novo = id === 'novo';
+  const d = novo ? { id: 'd' + Date.now().toString(36), data: hojeISO(), referencia: '', versiculo: '', texto: '' } : devocionalPorId(id);
+  if (!d) return { html: '<p class="vazio">Devocional não encontrado.</p>' };
+  return {
+    form: true,
+    html: `
+    <div class="hino-topo"><a href="#/devocionais" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>${novo ? 'Publicar devocional' : 'Editar devocional'}</h2></div></div></div>
+    <form id="form-dev" class="form">
+      <label class="campo">Data <small>Pode agendar para um dia futuro: ele aparece sozinho nesse dia.</small>
+        <input name="data" type="date" required value="${esc(d.data)}"></label>
+      <label class="campo">Referência <small>Ex.: João 3:16</small><input name="referencia" value="${esc(d.referencia)}"></label>
+      <label class="campo">Versículo<textarea name="versiculo" rows="4" required placeholder="Texto do versículo">${esc(d.versiculo)}</textarea></label>
+      <label class="campo">Devocional <small>Opcional. Separe os parágrafos com uma linha em branco.</small>
+        <textarea name="texto" rows="12" placeholder="Reflexão sobre o versículo…">${esc(d.texto)}</textarea></label>
+      <div class="botoes">
+        <button class="btn primario" type="submit">${novo ? 'Publicar' : 'Salvar'}</button>
+        ${novo ? '' : `<button class="btn perigo" type="button" data-act="excluirDevocional" data-id="${d.id}">Excluir</button>`}
+      </div>
+    </form>`,
+    depois() {
+      $('#form-dev').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        const salvo = {
+          ...d, data: f.data, referencia: f.referencia.trim(), versiculo: f.versiculo.trim(), texto: f.texto.trim(),
+          autor: d.autor || state.user?.nome || '', criadoEm: d.criadoEm || Date.now(),
+        };
+        if (!salvo.versiculo) { toast('Escreva o versículo.'); return; }
+        await api.salvarDevocional(salvo);
+        toast(salvo.data > hojeISO() ? 'Devocional agendado.' : 'Devocional publicado.');
+        location.hash = '#/devocionais';
+      });
+    },
+  };
+}
+
 // ---------------- tela do hino ----------------
 function telaHino(id, params) {
   const h = hinoPorId(id);
-  if (!h) return { html: '<p class="vazio">Hino não encontrado. <a href="#/">Voltar</a></p>' };
+  if (!h) return { html: '<p class="vazio">Hino não encontrado. <a href="#/hinos">Voltar</a></p>' };
   const fonte = pref.get('fonte', 20);
   const verMeus = pref.get('verMeus', true);
   const meus = state.perfil.grifos?.[id] || {};
@@ -266,7 +378,7 @@ function telaHino(id, params) {
     html: `
     ${navCulto}
     <div class="hino-topo">
-      <a href="${culto ? `#/evento/${culto.id}` : '#/'}" class="voltar" aria-label="Voltar">←</a>
+      <a href="${culto ? `#/evento/${culto.id}` : '#/hinos'}" class="voltar" aria-label="Voltar">←</a>
       <div class="titulo"><span class="num">${pad(h.numero)}</span><div><h2>${esc(h.titulo)}</h2><small>${esc(h.cantor)}</small></div></div>
       <button class="icone ${fav ? 'on' : ''}" data-act="fav" aria-label="Favorito">${fav ? '★' : '☆'}</button>
     </div>
@@ -680,6 +792,8 @@ function telaConta() {
     <h3 class="secao">Administração</h3>
     <div class="cartao botoes col">
       <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Usuários${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
+      <a class="btn" href="#/devocionais/novo">📖 Publicar devocional</a>
+      <a class="btn" href="#/devocionais">Devocionais publicados e agendados</a>
       <a class="btn" href="#/editar/novo">+ Adicionar hino novo</a>
       <a class="btn" href="#/ordem">Organizar numeração</a>
       <a class="btn" href="#/agenda">Agenda: cultos, ensaios e solos</a>
@@ -788,7 +902,7 @@ function telaEditarHino(id) {
   return {
     form: true,
     html: `
-    <div class="hino-topo"><a href="${novo ? '#/' : `#/hino/${h.id}`}" class="voltar">←</a><div class="titulo"><div><h2>${novo ? 'Novo hino' : 'Editar hino'}</h2></div></div></div>
+    <div class="hino-topo"><a href="${novo ? '#/hinos' : `#/hino/${h.id}`}" class="voltar">←</a><div class="titulo"><div><h2>${novo ? 'Novo hino' : 'Editar hino'}</h2></div></div></div>
     <form id="form-hino" class="form">
       <div class="duas"><label class="campo curto">Número<input name="numero" type="number" min="1" required value="${h.numero}"></label>
       <label class="campo">Nome do hino<input name="titulo" required value="${esc(h.titulo)}"></label></div>
@@ -912,13 +1026,21 @@ const acoes = {
     ui.rascunho = null;
     location.hash = `#/dia/${r.data}`;
   },
+  irNovos() { ui.soNovos = true; ui.soFavoritos = false; ui.busca = ''; },
+  irFavoritos() { ui.soFavoritos = true; ui.soNovos = false; ui.busca = ''; },
+  async excluirDevocional(el) {
+    if (!confirm('Excluir este devocional?')) return;
+    await api.excluirDevocional(el.dataset.id);
+    toast('Devocional excluído.');
+    location.hash = '#/devocionais';
+  },
   async excluirHino() {
     const id = rota().partes[1];
     const h = hinoPorId(id);
     if (!confirm(`Excluir o hino "${h.titulo}"? Isso não pode ser desfeito.`)) return;
     await api.excluirHino(id);
     toast('Hino excluído.');
-    location.hash = '#/';
+    location.hash = '#/hinos';
   },
   async mover(el) {
     const l = ordenados();

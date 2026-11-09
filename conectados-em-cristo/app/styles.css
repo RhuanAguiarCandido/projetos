@@ -305,3 +305,30 @@ body.bloqueado { padding-bottom: 24px; }
 .previa { border-radius: 12px; padding: 12px; background: var(--areia-claro); border: 1px dashed var(--areia-escuro); }
 .letra .vazio { font-family: Inter, system-ui, sans-serif; }
 .grupo-temas { font-size: 13px; color: var(--texto-suave); margin: 12px 0 6px; font-weight: 600; }
+
+/* ---------- devocional ---------- */
+.card-devocional {
+  display: block; text-decoration: none; color: var(--texto); background: var(--branco);
+  border: 1px solid var(--linha); border-left: 5px solid var(--vinho); border-radius: var(--raio);
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.card-devocional small { display: block; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--vinho); }
+.card-devocional blockquote, .devocional blockquote {
+  margin: 8px 0 4px; font-family: var(--fonte-letra); font-size: 18px; line-height: 1.45; font-style: italic;
+}
+.card-devocional cite, .devocional cite { display: block; font-style: normal; font-weight: 700; font-size: 14px; color: var(--texto-suave); }
+.card-devocional .ler { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 14px; color: var(--vinho); }
+a.card-devocional:active { background: var(--areia-claro); }
+.devocional { padding: 4px 0 16px; }
+.devocional blockquote { font-size: 22px; border-left: 4px solid var(--vinho); padding-left: 14px; margin: 8px 0; }
+.devocional cite { padding-left: 18px; margin-bottom: 18px; }
+.devocional .texto { font-family: var(--fonte-letra); font-size: 18px; line-height: 1.65; }
+.devocional .texto p { margin: 0 0 14px; }
+
+/* atalhos da tela inicial */
+.atalhos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 4px 0 8px; }
+.atalho { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--texto); background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; }
+.atalho b { font-size: 22px; color: var(--vinho); line-height: 1.1; }
+.atalho span { font-weight: 700; }
+.atalho small { color: var(--texto-suave); font-size: 12px; }
+.atalho:active { background: var(--areia-claro); }

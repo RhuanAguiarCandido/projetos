@@ -1,5 +1,5 @@
 # Publica o Hinário no Firebase Hosting (e as regras do Firestore) a cada
-# alteração em conectados-em-cristo/app na branch main.
+# alteração em conectados-em-cristo/app na branch main (ou na branch de desenvolvimento).
 #
 # Projeto: conectados-em-cristo-fe363 (definido em conectados-em-cristo/app/.firebaserc)
 # Precisa, em Settings → Secrets and variables → Actions do repositório:
@@ -9,7 +9,7 @@ name: Publicar Hinário
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/admiring-lovelace-ibx930]
     paths: ['conectados-em-cristo/app/**']
   workflow_dispatch:
 

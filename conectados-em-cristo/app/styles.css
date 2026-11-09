@@ -250,3 +250,36 @@ body.bloqueado { padding-bottom: 24px; }
 .linha.cadastro .acoes { flex-wrap: wrap; align-items: center; }
 .esquerda { text-align: left; }
 .btn.google { gap: 10px; border-color: var(--linha); color: var(--texto); }
+
+/* agenda: cultos e ensaios */
+.tipo { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 5px; padding: 1px 6px; vertical-align: 2px; }
+.tipo.culto { background: var(--vinho); color: var(--areia); }
+.tipo.ensaio { background: var(--preto); color: var(--areia); }
+.card-culto.ensaio { background: var(--preto); }
+.card-culto em { display: block; font-style: normal; font-weight: 700; margin-top: 6px; font-size: 14px; }
+.num.data.ensaio { background: var(--preto); }
+.dia.ensaio { background: var(--preto); color: var(--areia); font-weight: 700; }
+.dia .ponto-ensaio { position: absolute; top: auto; right: auto; bottom: 4px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; border-radius: 50%; background: var(--areia); }
+.dia .mic { position: absolute; top: 0; right: 2px; font-size: 10px; font-style: normal; }
+.legenda { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--texto-suave); margin-top: 10px; }
+.legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.q { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.q.culto { background: var(--vinho); }
+.q.ensaio { background: var(--preto); }
+.cartao.obs { margin: 4px 0 12px; font-size: 15px; }
+.aviso.solo { background: var(--areia); border-color: var(--areia-escuro); }
+.aviso.solo.eu { background: #FFF1B8; border-color: #E9C766; }
+.solistas { display: block; color: var(--vinho) !important; font-weight: 600; }
+.solistas.eu { background: #FFF1B8; border-radius: 6px; padding: 0 6px; display: inline-block; }
+.seg.grande { display: flex; margin: 4px 0 8px; }
+.seg.grande button { flex: 1; padding: 10px; font-size: 15px; }
+.evento-hino { align-items: flex-start; flex-wrap: wrap; }
+.evento-hino .info b { white-space: normal; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip.pequeno { padding: 4px 10px; font-size: 13px; }
+.add-solista { font: inherit; font-size: 13px; border: 1.5px dashed var(--areia-escuro); background: var(--branco); border-radius: 999px; padding: 4px 10px; color: var(--vinho); max-width: 100%; }
+
+/* hinos novos */
+.novo { display: inline-block; background: var(--vinho); color: var(--areia); font-size: 10px; font-weight: 800; letter-spacing: .08em; border-radius: 5px; padding: 1px 6px; vertical-align: 2px; }
+.chip.novo-chip { border-color: var(--vinho); color: var(--vinho); font-weight: 700; }
+.chip.novo-chip.on { background: var(--vinho); color: var(--areia); }

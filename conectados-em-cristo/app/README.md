@@ -1,4 +1,4 @@
-# Hinário — Conectados em Cristo
+# Repertório — Conectados em Cristo
 
 App de celular (PWA) do grupo de jovens. Abre pelo navegador e pode ser
 instalado na tela inicial ("Adicionar à tela de início").
@@ -10,7 +10,7 @@ instalado na tela inicial ("Adicionar à tela de início").
 - No primeiro acesso a pessoa fica **aguardando aprovação**; até lá só vê essa tela.
 - Os admins veem os pedidos em **Conta → Usuários** (com aviso na tela inicial e
   um número no ícone *Conta*) e aprovam como **membro** ou **admin**, ou recusam.
-  Assim que é aprovado, o hinário abre sozinho no celular da pessoa.
+  Assim que é aprovado, o repertório abre sozinho no celular da pessoa.
 - A qualquer momento um admin pode **trocar** alguém entre membro e admin ou
   **remover o acesso**.
 - **Proprietário:** `rhuan.4b@gmail.com`, entrando com Google. É sempre admin e
@@ -24,8 +24,11 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Grifar estrofes**: toque numa estrofe e escolha a cor (6 cores prontas ou
   qualquer outra). Os grifos são de cada pessoa
 - **Favoritos** (☆)
-- **Agenda**: calendário com os cultos e os hinos de cada um, na ordem; dentro do
-  culto dá para ir de um hino para o próximo
+- **Agenda**: calendário com **cultos** (vinho) e **ensaios** (preto), com
+  horário e observação. Cada um tem os hinos na ordem e **quem faz o solo** de
+  cada hino; quem tem solo vê 🎤 no calendário, na tela inicial e no hino.
+- Selo **NOVO** nos hinos cadastrados depois que a pessoa entrou, até ela abrir
+  o hino pela primeira vez (filtro "Novos" na lista)
 - **Tela sempre acesa** enquanto a letra está aberta
 - **Funciona sem internet** depois de aberto uma vez (o áudio precisa de internet)
 
@@ -36,7 +39,7 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
   desligado em "Mostrar meus grifos")
 - Marcar **quem canta** cada estrofe: Todos, Solo masculino ou Solo feminino
-- Marcar os cultos no calendário e escolher os hinos de cada dia
+- Marcar cultos e ensaios no calendário, escolher os hinos e quem faz cada solo
 
 ## Como experimentar agora
 
@@ -78,3 +81,18 @@ Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 | `firestore.rules` | Regras de segurança do banco |
 | `firebase.json` | Configuração da hospedagem (Firebase Hosting) |
 | `../../.github/workflows/deploy-hinario.yml` | Publicação automática pelo GitHub |
+
+## Como atualizar o app
+
+O app no ar é sempre o que está no repositório. Para mudar alguma coisa:
+
+1. Peça a alteração ao Claude, em qualquer sessão com este repositório.
+2. A alteração é salva no GitHub (commit e push).
+3. Com a publicação automática configurada (SETUP.md, opção B), o GitHub publica
+   sozinho em alguns minutos. Sem ela, rode `firebase deploy --only hosting,firestore:rules`
+   dentro de `conectados-em-cristo/app`.
+4. Nos celulares, a versão nova aparece ao reabrir o app (às vezes é preciso
+   fechar e abrir duas vezes, por causa do modo offline).
+
+Hinos, letras, cultos, ensaios e usuários **não precisam de atualização do
+app**: os admins mudam isso direto nas telas do app.

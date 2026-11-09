@@ -26,9 +26,9 @@ service cloud.firestore {
       return adm() || (temCadastro() && meuCadastro().status == 'aprovado');
     }
 
-    // Hinos e agenda: aprovados leem; só admins alteram
+    // Hinos e agenda (cultos e ensaios): aprovados leem; só admins alteram
     match /hinos/{id}   { allow read: if aprovado(); allow write: if adm(); }
-    match /cultos/{dia} { allow read: if aprovado(); allow write: if adm(); }
+    match /eventos/{id} { allow read: if aprovado(); allow write: if adm(); }
 
     // Usuários
     match /usuarios/{uid} {

@@ -28,4 +28,4 @@ Ambas em PNG com fundo transparente.
 
 ## App
 
-[`app/`](app/) — Hinário (PWA): busca, letras, áudio, grifos, favoritos e agenda de cultos.
+[`app/`](app/) — Repertório (PWA): busca, letras, áudio, grifos, favoritos e agenda de cultos e ensaios.

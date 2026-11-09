@@ -11,8 +11,8 @@ const fmtData = (iso, o = { weekday: 'long', day: 'numeric', month: 'long' }) =>
 const novoId = () => 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const ordenados = () => [...state.hinos].sort((a, b) => a.numero - b.numero);
 const hinoPorId = (id) => state.hinos.find((h) => h.id === id);
-const cultoPorData = (d) => state.cultos.find((c) => c.data === d);
-const proximosCultos = () => state.cultos.filter((c) => c.data >= hojeISO()).sort((a, b) => a.data.localeCompare(b.data));
+// "NOVO": hino criado depois que a pessoa entrou e que ela ainda não abriu
+const ehNovo = (h) => !!h.criadoEm && h.criadoEm > (state.perfil.desde || 0) && !(state.perfil.vistos || []).includes(h.id);
 export const ytId = (url) => (String(url || '').match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/) || [])[1] || null;
 
 const pref = {
@@ -36,7 +36,7 @@ const ui = {
   busca: '',
   soFavoritos: false,
   mes: (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })(),
-  rascunhoCulto: null,
+  rascunho: null, // evento sendo editado
   sheet: null, // { hinoId, i }
 };
 
@@ -66,7 +66,8 @@ function render(forcar = false) {
   else if (partes[0] === 'cadastros') v = telaCadastros();
   else if (partes[0] === 'hino' && partes[1]) v = telaHino(partes[1], params);
   else if (partes[0] === 'agenda') v = telaAgenda();
-  else if (partes[0] === 'culto' && partes[1]) v = telaCulto(partes[1], params);
+  else if (partes[0] === 'dia' && partes[1]) v = telaDia(partes[1]);
+  else if (partes[0] === 'evento' && partes[1]) v = telaEvento(partes[1], params);
   else if (partes[0] === 'conta') v = telaConta();
   else if (partes[0] === 'editar' && partes[1]) v = telaEditarHino(partes[1]);
   else if (partes[0] === 'ordem') v = telaOrdem();
@@ -93,7 +94,7 @@ function linhaHino(h, extra = '') {
   const fav = state.perfil.favoritos?.includes(h.id);
   return `<a class="linha" href="#/hino/${h.id}${extra}">
     <span class="num">${pad(h.numero)}</span>
-    <span class="info"><b>${esc(h.titulo)}</b><small>${esc(h.cantor)}</small></span>
+    <span class="info"><b>${esc(h.titulo)}${ehNovo(h) ? ' <span class="novo">NOVO</span>' : ''}</b><small>${esc(h.cantor)}</small></span>
     <span class="icones">${fav ? '<i title="Favorito">★</i>' : ''}${temLetra ? '' : '<i class="falta" title="Letra ainda não cadastrada">sem letra</i>'}${temAudio ? '<i title="Áudio disponível">♪</i>' : ''}</span>
   </a>`;
 }
@@ -102,6 +103,7 @@ function listaFiltrada() {
   const q = norm(ui.busca.trim());
   return ordenados().filter((h) => {
     if (ui.soFavoritos && !state.perfil.favoritos?.includes(h.id)) return false;
+    if (ui.soNovos && !ehNovo(h)) return false;
     if (!q) return true;
     if (/^\d+$/.test(q)) return String(h.numero).startsWith(String(Number(q)));
     return norm(`${h.titulo} ${h.cantor} ${(h.estrofes || []).map((e) => e.texto).join(' ')}`).includes(q);
@@ -115,17 +117,15 @@ function htmlLista() {
 }
 
 function telaInicio() {
-  const prox = proximosCultos()[0];
-  const card = prox ? `<a class="card-culto" href="#/culto/${prox.data}">
-      <small>${prox.data === hojeISO() ? 'Hoje' : 'Próximo culto'}</small>
-      <b>${esc(prox.titulo || 'Culto')}</b>
-      <span>${esc(fmtData(prox.data))} · ${prox.hinos.length} ${prox.hinos.length === 1 ? 'hino' : 'hinos'}</span>
-    </a>` : '';
+  const pc = proximosEventos('culto')[0];
+  const pe = proximosEventos('ensaio')[0];
+  const card = [pc && cardEvento(pc, 'Próximo culto'), pe && cardEvento(pe, 'Próximo ensaio')]
+    .filter(Boolean).sort().join('');
   return {
     html: `
     <header class="topo">
       <img src="img/logo.png" alt="Conectados em Cristo" class="logo">
-      <div><h1>Hinário</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>
+      <div><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>
     </header>
     ${state.isAdmin && state.usuarios.some((u) => u.status === 'pendente') ? `<a class="aviso link" href="#/cadastros">👤 ${state.usuarios.filter((u) => u.status === 'pendente').length} cadastro(s) aguardando sua aprovação →</a>` : ''}
     ${card}
@@ -133,7 +133,8 @@ function telaInicio() {
       <input id="busca" type="search" placeholder="Buscar por nome, número, cantor ou trecho" value="${esc(ui.busca)}" autocomplete="off">
     </div>
     <div class="filtros">
-      <button class="chip ${ui.soFavoritos ? '' : 'on'}" data-act="filtro" data-v="0">Todos (${state.hinos.length})</button>
+      <button class="chip ${ui.soFavoritos || ui.soNovos ? '' : 'on'}" data-act="filtro" data-v="0">Todos (${state.hinos.length})</button>
+      ${state.hinos.some(ehNovo) ? `<button class="chip novo-chip ${ui.soNovos ? 'on' : ''}" data-act="filtro" data-v="2">Novos (${state.hinos.filter(ehNovo).length})</button>` : ''}
       <button class="chip ${ui.soFavoritos ? 'on' : ''}" data-act="filtro" data-v="1">★ Favoritos (${state.perfil.favoritos?.length || 0})</button>
       ${state.isAdmin ? '<a class="chip adm" href="#/editar/novo">+ Novo hino</a>' : ''}
     </div>
@@ -154,19 +155,24 @@ function telaHino(id, params) {
   const padrao = h.grifosPadrao || {};
   const fav = state.perfil.favoritos?.includes(id);
 
-  // navegação dentro do culto
+  // navegação dentro do culto/ensaio
   let navCulto = '';
-  const dataCulto = params.get('culto');
-  const culto = dataCulto && cultoPorData(dataCulto);
+  let soloAqui = '';
+  const culto = params.get('ev') && eventoPorId(params.get('ev'));
   if (culto) {
-    const lista = culto.hinos.filter(hinoPorId);
+    const itens = culto.hinos.filter((x) => hinoPorId(x.id));
+    const lista = itens.map((x) => x.id);
     const i = lista.indexOf(id);
-    const link = (j) => `#/hino/${lista[j]}?culto=${culto.data}`;
+    const link = (j) => `#/hino/${lista[j]}?ev=${culto.id}`;
     navCulto = `<div class="nav-culto">
       ${i > 0 ? `<a href="${link(i - 1)}">◀ Anterior</a>` : '<span></span>'}
-      <a href="#/culto/${culto.data}" class="meio">${esc(culto.titulo || 'Culto')} · ${i + 1} de ${lista.length}</a>
+      <a href="#/evento/${culto.id}" class="meio">${esc(tituloEv(culto))} · ${i + 1} de ${lista.length}</a>
       ${i < lista.length - 1 ? `<a href="${link(i + 1)}">Próximo ▶</a>` : '<span></span>'}
     </div>`;
+    const item = itens[i];
+    if (item && (item.solistas || []).length) {
+      soloAqui = `<div class="aviso solo ${souSolista(item) ? 'eu' : ''}">🎤 Solo neste ${culto.tipo === 'ensaio' ? 'ensaio' : 'culto'}: <b>${esc(nomesSolistas(item))}</b></div>`;
+    }
   }
 
   const botaoAudio = (tipo, rotulo) => {
@@ -194,7 +200,7 @@ function telaHino(id, params) {
     html: `
     ${navCulto}
     <div class="hino-topo">
-      <a href="${culto ? `#/culto/${culto.data}` : '#/'}" class="voltar" aria-label="Voltar">←</a>
+      <a href="${culto ? `#/evento/${culto.id}` : '#/'}" class="voltar" aria-label="Voltar">←</a>
       <div class="titulo"><span class="num">${pad(h.numero)}</span><div><h2>${esc(h.titulo)}</h2><small>${esc(h.cantor)}</small></div></div>
       <button class="icone ${fav ? 'on' : ''}" data-act="fav" aria-label="Favorito">${fav ? '★' : '☆'}</button>
     </div>
@@ -211,9 +217,16 @@ function telaHino(id, params) {
       <span id="tela-acesa" class="tela-acesa" hidden>☀ Tela acesa</span>
       ${state.isAdmin ? `<a class="link-adm" href="#/editar/${h.id}">Editar hino</a>` : ''}
     </div>
+    ${soloAqui}
     ${h.estrofes?.length ? `<p class="dica">Toque numa estrofe para grifar${state.isAdmin ? ' ou marcar quem canta' : ''}.</p>` : ''}
     <article class="letra" style="--fonte:${fonte}px">${h.estrofes?.length ? estrofes : semLetra}</article>`,
-    depois: atualizarTelaAcesa,
+    depois() {
+      atualizarTelaAcesa();
+      if (ehNovo(h)) { // abriu pela primeira vez: tira o selo NOVO
+        state.perfil.vistos = [...(state.perfil.vistos || []), h.id];
+        api.salvarPerfil();
+      }
+    },
   };
 }
 
@@ -344,7 +357,38 @@ async function manterTelaAcesa(on) {
 function atualizarTelaAcesa() { const el = $('#tela-acesa'); if (el) el.hidden = !wakeLock; }
 document.addEventListener('visibilitychange', () => { if (querTelaAcesa) manterTelaAcesa(true); });
 
-// ---------------- agenda / calendário ----------------
+// ---------------- agenda: cultos e ensaios ----------------
+const TIPOS = { culto: 'Culto', ensaio: 'Ensaio' };
+const ordemEv = (a, b) => a.data.localeCompare(b.data) || (a.hora || '').localeCompare(b.hora || '');
+const eventoPorId = (id) => state.eventos.find((e) => e.id === id);
+const eventosDoDia = (d) => state.eventos.filter((e) => e.data === d).sort(ordemEv);
+const proximosEventos = (tipo) => state.eventos.filter((e) => e.data >= hojeISO() && (!tipo || e.tipo === tipo)).sort(ordemEv);
+const tituloEv = (e) => e.titulo || TIPOS[e.tipo] || 'Evento';
+const quandoEv = (e) => `${fmtData(e.data)}${e.hora ? ` · ${e.hora}` : ''}`;
+const souSolista = (x) => (x.solistas || []).some((s) => s.uid === state.user?.uid);
+const meusSolos = (e) => (e.hinos || []).filter((x) => souSolista(x) && hinoPorId(x.id));
+const nomesSolistas = (x) => (x.solistas || []).map((s) => (s.uid === state.user?.uid ? 'você' : s.nome)).join(', ');
+const seloTipo = (e) => `<span class="tipo ${e.tipo}">${TIPOS[e.tipo] || 'Evento'}</span>`;
+
+function cardEvento(e, rotulo) {
+  const solos = meusSolos(e);
+  return `<a class="card-culto ${e.tipo}" href="#/evento/${e.id}">
+      <small>${e.data === hojeISO() ? 'Hoje' : rotulo}</small>
+      <b>${esc(tituloEv(e))}</b>
+      <span>${esc(quandoEv(e))} · ${e.hinos.length} ${e.hinos.length === 1 ? 'hino' : 'hinos'}</span>
+      ${solos.length ? `<em>🎤 Você faz solo em ${solos.length} ${solos.length === 1 ? 'hino' : 'hinos'}</em>` : ''}
+    </a>`;
+}
+
+function linhaEvento(e) {
+  const d = isoToDate(e.data);
+  const solos = meusSolos(e).length;
+  return `<a class="linha" href="#/evento/${e.id}">
+    <span class="num data ${e.tipo}">${d.getDate()}<small>${fmtData(e.data, { month: 'short' }).replace('.', '')}</small></span>
+    <span class="info"><b>${seloTipo(e)} ${esc(tituloEv(e))}</b><small>${esc(quandoEv(e))} · ${e.hinos.length} ${e.hinos.length === 1 ? 'hino' : 'hinos'}${solos ? ' · 🎤 seu solo' : ''}</small></span>
+  </a>`;
+}
+
 function telaAgenda() {
   const m = ui.mes;
   const ano = m.getFullYear();
@@ -356,15 +400,18 @@ function telaAgenda() {
   for (let i = 0; i < primeiroDia; i++) cel += '<span></span>';
   for (let d = 1; d <= diasNoMes; d++) {
     const iso = `${ano}-${pad(mes + 1)}-${pad(d)}`;
-    const c = cultoPorData(iso);
-    cel += `<button class="dia ${c ? 'culto' : ''} ${iso === hoje ? 'hoje' : ''}" data-act="dia" data-d="${iso}">
-      ${d}${c ? `<i>${c.hinos.length}</i>` : ''}</button>`;
+    const evs = eventosDoDia(iso);
+    const temCulto = evs.some((e) => e.tipo === 'culto');
+    const temEnsaio = evs.some((e) => e.tipo === 'ensaio');
+    const solo = evs.some((e) => meusSolos(e).length);
+    cel += `<button class="dia ${temCulto ? 'culto' : temEnsaio ? 'ensaio' : ''} ${iso === hoje ? 'hoje' : ''}" data-act="dia" data-d="${iso}">
+      ${d}${temCulto && temEnsaio ? '<i class="ponto-ensaio"></i>' : ''}${solo ? '<i class="mic">🎤</i>' : ''}</button>`;
   }
-  const prox = proximosCultos();
+  const prox = proximosEventos();
   const titulo = m.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   return {
     html: `
-    <h2 class="secao">Agenda de cultos</h2>
+    <h2 class="secao">Agenda</h2>
     <div class="cal">
       <div class="cal-topo">
         <button class="icone" data-act="mes" data-d="-1" aria-label="Mês anterior">‹</button>
@@ -372,72 +419,124 @@ function telaAgenda() {
         <button class="icone" data-act="mes" data-d="1" aria-label="Próximo mês">›</button>
       </div>
       <div class="cal-grade">${['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((x) => `<small>${x}</small>`).join('')}${cel}</div>
+      <div class="legenda"><span><i class="q culto"></i>Culto</span><span><i class="q ensaio"></i>Ensaio</span><span>🎤 Seu solo</span></div>
     </div>
-    <p class="dica">${state.isAdmin ? 'Toque num dia para marcar um culto e escolher os hinos.' : 'Dias em vinho têm culto marcado. O número é a quantidade de hinos.'}</p>
-    <h3 class="secao">Próximos cultos</h3>
-    <div class="lista">${prox.length ? prox.map((c) => `<a class="linha" href="#/culto/${c.data}">
-        <span class="num data">${isoToDate(c.data).getDate()}<small>${fmtData(c.data, { month: 'short' }).replace('.', '')}</small></span>
-        <span class="info"><b>${esc(c.titulo || 'Culto')}</b><small>${esc(fmtData(c.data))} · ${c.hinos.length} hinos</small></span>
-      </a>`).join('') : '<p class="vazio">Nenhum culto marcado.</p>'}</div>`,
+    <p class="dica">${state.isAdmin ? 'Toque num dia para marcar um culto ou ensaio, escolher os hinos e quem faz o solo.' : 'Toque num dia marcado para ver os hinos.'}</p>
+    <h3 class="secao">Próximos</h3>
+    <div class="lista">${prox.length ? prox.map(linhaEvento).join('') : '<p class="vazio">Nada marcado.</p>'}</div>`,
   };
 }
 
-function telaCulto(data, params) {
-  const c = cultoPorData(data);
-  const editar = state.isAdmin && (params.get('editar') === '1' || !c);
-  if (!c && !state.isAdmin) return { html: '<p class="vazio">Nenhum culto marcado neste dia. <a href="#/agenda">Voltar</a></p>' };
-
-  if (editar) {
-    if (!ui.rascunhoCulto || ui.rascunhoCulto.data !== data) {
-      ui.rascunhoCulto = c ? JSON.parse(JSON.stringify(c)) : { data, titulo: isoToDate(data).getDay() === 0 ? 'Culto de domingo' : 'Culto', hinos: [] };
-    }
-    const r = ui.rascunhoCulto;
-    return {
-      form: true,
-      html: `
-      <div class="hino-topo"><a href="#/agenda" class="voltar">←</a><div class="titulo"><div><h2>${c ? 'Editar culto' : 'Novo culto'}</h2><small>${esc(fmtData(data))}</small></div></div></div>
-      <label class="campo">Nome do culto<input id="c-titulo" value="${esc(r.titulo)}" placeholder="Ex.: Culto de domingo"></label>
-      <h3 class="secao">Hinos (${r.hinos.length})</h3>
-      <div class="lista ordem">${r.hinos.map((id, i) => {
-        const h = hinoPorId(id);
-        return `<div class="linha"><span class="num">${i + 1}º</span><span class="info"><b>${h ? `${pad(h.numero)} · ${esc(h.titulo)}` : '(hino removido)'}</b><small>${h ? esc(h.cantor) : ''}</small></span>
-          <span class="acoes"><button class="icone" data-act="cMover" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'}>▲</button><button class="icone" data-act="cMover" data-i="${i}" data-d="1" ${i < r.hinos.length - 1 ? '' : 'disabled'}>▼</button><button class="icone perigo" data-act="cTirar" data-i="${i}">✕</button></span></div>`;
-      }).join('') || '<p class="vazio">Nenhum hino ainda. Busque abaixo para adicionar.</p>'}</div>
-      <div class="busca"><input id="c-busca" type="search" placeholder="Adicionar hino: nome ou número" autocomplete="off"></div>
-      <div id="c-result" class="lista"></div>
-      <div class="botoes">
-        <button class="btn primario" data-act="cSalvar">Salvar culto</button>
-        <a class="btn" href="${c ? `#/culto/${data}` : '#/agenda'}" data-act="cCancelar">Cancelar</a>
-        ${c ? '<button class="btn perigo" data-act="cExcluir">Excluir culto</button>' : ''}
-      </div>`,
-      depois() {
-        $('#c-titulo').addEventListener('input', (e) => { r.titulo = e.target.value; });
-        const busca = $('#c-busca');
-        const mostrar = () => {
-          const q = norm(busca.value.trim());
-          if (!q) { $('#c-result').innerHTML = ''; return; }
-          const l = ordenados().filter((h) => (/^\d+$/.test(q) ? String(h.numero).startsWith(String(Number(q))) : norm(h.titulo + ' ' + h.cantor).includes(q))).slice(0, 8);
-          $('#c-result').innerHTML = l.map((h) => `<button class="linha" data-act="cAdd" data-id="${h.id}"><span class="num">${pad(h.numero)}</span><span class="info"><b>${esc(h.titulo)}</b><small>${esc(h.cantor)}</small></span><span class="icones">${r.hinos.includes(h.id) ? '<i>já está</i>' : '<i>+ adicionar</i>'}</span></button>`).join('') || '<p class="vazio">Nada encontrado.</p>';
-        };
-        busca.addEventListener('input', mostrar);
-        busca.value = ui.cBusca || '';
-        mostrar();
-      },
-    };
-  }
-
-  const lista = c.hinos.map(hinoPorId).filter(Boolean);
+function telaDia(iso) {
+  const evs = eventosDoDia(iso);
   return {
     html: `
-    <div class="hino-topo"><a href="#/agenda" class="voltar">←</a><div class="titulo"><div><h2>${esc(c.titulo || 'Culto')}</h2><small>${esc(fmtData(c.data))}</small></div></div>
-      ${state.isAdmin ? `<a class="btn pequeno" href="#/culto/${c.data}?editar=1">Editar</a>` : ''}</div>
-    <div class="lista">${lista.length ? lista.map((h, i) => linhaHino(h, `?culto=${c.data}`).replace(`<span class="num">${pad(h.numero)}</span>`, `<span class="num ordem-n">${i + 1}º<small>nº ${pad(h.numero)}</small></span>`)).join('') : '<p class="vazio">Nenhum hino escolhido ainda.</p>'}</div>
-    ${lista.length ? `<a class="btn primario largo" href="#/hino/${lista[0].id}?culto=${c.data}">Começar pelo 1º hino</a>` : ''}`,
+    <div class="hino-topo"><a href="#/agenda" class="voltar">←</a><div class="titulo"><div><h2>${esc(fmtData(iso, { weekday: 'long' }))}</h2><small>${esc(fmtData(iso, { day: 'numeric', month: 'long', year: 'numeric' }))}</small></div></div></div>
+    <div class="lista">${evs.length ? evs.map(linhaEvento).join('') : '<p class="vazio">Nada marcado neste dia.</p>'}</div>
+    ${state.isAdmin ? `<div class="botoes">
+      <a class="btn primario" href="#/evento/novo?data=${iso}&tipo=culto">+ Marcar culto</a>
+      <a class="btn" href="#/evento/novo?data=${iso}&tipo=ensaio">+ Marcar ensaio</a></div>` : ''}`,
+  };
+}
+
+function telaEvento(id, params) {
+  const e = id === 'novo' ? null : eventoPorId(id);
+  const editar = state.isAdmin && (id === 'novo' || params.get('editar') === '1');
+  if (!e && !editar) return { html: '<p class="vazio">Evento não encontrado. <a href="#/agenda">Voltar</a></p>' };
+  if (editar) return telaEditarEvento(e, params);
+
+  const lista = e.hinos.filter((x) => hinoPorId(x.id));
+  const solos = meusSolos(e);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/dia/${e.data}" class="voltar">←</a><div class="titulo"><div><h2>${esc(tituloEv(e))}</h2><small>${seloTipo(e)} ${esc(quandoEv(e))}</small></div></div>
+      ${state.isAdmin ? `<a class="btn pequeno" href="#/evento/${e.id}?editar=1">Editar</a>` : ''}</div>
+    ${e.obs ? `<div class="cartao obs">${esc(e.obs).replace(/\n/g, '<br>')}</div>` : ''}
+    ${solos.length ? `<div class="aviso solo">🎤 <b>Você faz solo em:</b> ${solos.map((x) => esc(hinoPorId(x.id).titulo)).join(', ')}</div>` : ''}
+    <div class="lista">${lista.length ? lista.map((x, i) => {
+      const h = hinoPorId(x.id);
+      const sol = (x.solistas || []).length ? `<small class="solistas ${souSolista(x) ? 'eu' : ''}">🎤 Solo: ${esc(nomesSolistas(x))}</small>` : '';
+      return `<a class="linha" href="#/hino/${h.id}?ev=${e.id}">
+        <span class="num ordem-n">${i + 1}º<small>nº ${pad(h.numero)}</small></span>
+        <span class="info"><b>${esc(h.titulo)}${ehNovo(h) ? ' <span class="novo">NOVO</span>' : ''}</b><small>${esc(h.cantor)}</small>${sol}</span>
+      </a>`;
+    }).join('') : '<p class="vazio">Nenhum hino escolhido ainda.</p>'}</div>
+    ${lista.length ? `<a class="btn primario largo" href="#/hino/${lista[0].id}?ev=${e.id}">${e.tipo === 'ensaio' ? 'Começar o ensaio' : 'Começar pelo 1º hino'}</a>` : ''}`,
+  };
+}
+
+function telaEditarEvento(e, params) {
+  const chave = e ? e.id : `novo:${params.get('data')}:${params.get('tipo')}`;
+  if (!ui.rascunho || ui.rascunho._chave !== chave) {
+    ui.rascunho = e
+      ? { ...JSON.parse(JSON.stringify(e)), _chave: chave }
+      : { _chave: chave, id: 'e' + Date.now().toString(36), data: params.get('data') || hojeISO(), tipo: params.get('tipo') === 'ensaio' ? 'ensaio' : 'culto', hora: '', titulo: '', obs: '', hinos: [] };
+    ui.cBusca = '';
+  }
+  const r = ui.rascunho;
+  const aprovados = state.usuarios.filter((u) => u.status === 'aprovado').sort((a, b) => a.nome.localeCompare(b.nome));
+  const sugestao = r.tipo === 'ensaio' ? 'Ensaio' : (isoToDate(r.data).getDay() === 0 ? 'Culto de domingo' : 'Culto');
+  return {
+    form: true,
+    html: `
+    <div class="hino-topo"><a href="${e ? `#/evento/${e.id}` : `#/dia/${r.data}`}" class="voltar" data-act="rCancelar">←</a><div class="titulo"><div><h2>${e ? 'Editar' : 'Marcar'} ${TIPOS[r.tipo].toLowerCase()}</h2></div></div></div>
+    <div class="seg grande">
+      <button class="${r.tipo === 'culto' ? 'on' : ''}" data-act="rTipo" data-v="culto">Culto</button>
+      <button class="${r.tipo === 'ensaio' ? 'on' : ''}" data-act="rTipo" data-v="ensaio">Ensaio</button>
+    </div>
+    <div class="duas"><label class="campo">Data<input id="r-data" type="date" value="${r.data}" required></label>
+    <label class="campo curto">Horário<input id="r-hora" type="time" value="${esc(r.hora)}"></label></div>
+    <label class="campo">Nome <small>opcional</small><input id="r-titulo" value="${esc(r.titulo)}" placeholder="${sugestao}"></label>
+    <label class="campo">Observação <small>opcional (ex.: local, roupa, chegar mais cedo)</small><textarea id="r-obs" rows="2">${esc(r.obs)}</textarea></label>
+
+    <h3 class="secao">Hinos (${r.hinos.length})</h3>
+    <div class="lista ordem">${r.hinos.map((x, i) => {
+      const h = hinoPorId(x.id);
+      const ja = new Set((x.solistas || []).map((s) => s.uid));
+      return `<div class="linha evento-hino">
+        <span class="num">${i + 1}º</span>
+        <span class="info"><b>${h ? `${pad(h.numero)} · ${esc(h.titulo)}` : '(hino removido)'}</b>
+          <span class="chips">${(x.solistas || []).map((s, j) => `<button class="chip pequeno on" data-act="rTirarSolista" data-i="${i}" data-j="${j}" title="Tirar">🎤 ${esc(s.nome)} ✕</button>`).join('')}
+            <select class="add-solista" data-i="${i}" aria-label="Adicionar solista">
+              <option value="">+ quem faz o solo</option>
+              ${aprovados.filter((u) => !ja.has(u.uid)).map((u) => `<option value="${u.uid}">${esc(u.nome)}</option>`).join('')}
+            </select></span></span>
+        <span class="acoes"><button class="icone" data-act="rMover" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'}>▲</button><button class="icone" data-act="rMover" data-i="${i}" data-d="1" ${i < r.hinos.length - 1 ? '' : 'disabled'}>▼</button><button class="icone perigo" data-act="rTirar" data-i="${i}">✕</button></span>
+      </div>`;
+    }).join('') || '<p class="vazio">Nenhum hino ainda. Busque abaixo para adicionar.</p>'}</div>
+    <div class="busca"><input id="c-busca" type="search" placeholder="Adicionar hino: nome ou número" autocomplete="off"></div>
+    <div id="c-result" class="lista"></div>
+    <div class="botoes">
+      <button class="btn primario" data-act="rSalvar">Salvar</button>
+      <a class="btn" href="${e ? `#/evento/${e.id}` : `#/dia/${r.data}`}" data-act="rCancelar">Cancelar</a>
+      ${e ? `<button class="btn perigo" data-act="rExcluir">Excluir ${TIPOS[r.tipo].toLowerCase()}</button>` : ''}
+    </div>`,
+    depois() {
+      const liga = (sel, campo) => $(sel).addEventListener('input', (ev) => { r[campo] = ev.target.value; });
+      liga('#r-data', 'data'); liga('#r-hora', 'hora'); liga('#r-titulo', 'titulo'); liga('#r-obs', 'obs');
+      document.querySelectorAll('.add-solista').forEach((sel) => sel.addEventListener('change', () => {
+        const u = state.usuarios.find((x) => x.uid === sel.value);
+        if (!u) return;
+        const item = r.hinos[+sel.dataset.i];
+        item.solistas = [...(item.solistas || []), { uid: u.uid, nome: u.nome }];
+        render(true);
+      }));
+      const busca = $('#c-busca');
+      const mostrar = () => {
+        const q = norm(busca.value.trim());
+        if (!q) { $('#c-result').innerHTML = ''; return; }
+        const l = ordenados().filter((h) => (/^\d+$/.test(q) ? String(h.numero).startsWith(String(Number(q))) : norm(h.titulo + ' ' + h.cantor).includes(q))).slice(0, 8);
+        $('#c-result').innerHTML = l.map((h) => `<button class="linha" data-act="rAdd" data-id="${h.id}"><span class="num">${pad(h.numero)}</span><span class="info"><b>${esc(h.titulo)}</b><small>${esc(h.cantor)}</small></span><span class="icones">${r.hinos.some((x) => x.id === h.id) ? '<i>já está</i>' : '<i>+ adicionar</i>'}</span></button>`).join('') || '<p class="vazio">Nada encontrado.</p>';
+      };
+      busca.addEventListener('input', mostrar);
+      busca.value = ui.cBusca || '';
+      mostrar();
+    },
   };
 }
 
 // ---------------- portão de acesso (entrar / cadastrar / aguardando) ----------------
-const logoTopo = `<div class="portao-logo"><img src="img/logo.png" alt="Conectados em Cristo"><h1>Hinário</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>`;
+const logoTopo = `<div class="portao-logo"><img src="img/logo.png" alt="Conectados em Cristo"><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>`;
 const avisoDemo = () => (state.modo === 'demo'
   ? '<p class="dica centro">Modo demonstração: login simulado; os dados ficam só neste aparelho.</p>' : '');
 
@@ -453,7 +552,7 @@ function telaPortao() {
           <p>Olá, <b>${esc(state.user.nome)}</b>!</p>
           <p>${recusado
             ? 'Seu acesso não foi aprovado por um administrador. Se acha que é um engano, fale com a liderança do grupo.'
-            : 'Seu pedido de acesso foi enviado. Assim que um administrador aprovar, o hinário abre aqui automaticamente.'}</p>
+            : 'Seu pedido de acesso foi enviado. Assim que um administrador aprovar, o repertório abre aqui automaticamente.'}</p>
           <p class="dica">${esc(state.user.email)}</p>
           <button class="btn" data-act="logout">Sair</button>
         </div>${avisoDemo()}</div>`,
@@ -516,10 +615,10 @@ function telaConta() {
       <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Usuários${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
       <a class="btn" href="#/editar/novo">+ Adicionar hino novo</a>
       <a class="btn" href="#/ordem">Organizar numeração</a>
-      <a class="btn" href="#/agenda">Marcar hinos dos cultos</a>
+      <a class="btn" href="#/agenda">Agenda: cultos, ensaios e solos</a>
       ${!state.hinos.length ? '<button class="btn" data-act="importar">Importar repertório inicial (41 hinos)</button>' : ''}
     </div>` : ''}
-    <p class="rodape">Hinário Conectados em Cristo · ${state.hinos.length} hinos</p>`,
+    <p class="rodape">Repertório Conectados em Cristo · ${state.hinos.length} hinos</p>`,
   };
 }
 
@@ -547,7 +646,7 @@ function telaCadastros() {
         <button class="${u.papel !== 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"membro"}'>Membro</button>
         <button class="${u.papel === 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"admin"}' data-confirma="Tornar ${esc(u.nome)} admin? Admins podem editar hinos, cultos e usuários.">Admin</button>
       </div>`;
-    return papel + btn(u, 'Remover acesso', { status: 'recusado', papel: 'membro' }, 'perigo', `Remover o acesso de ${u.nome} ao hinário?`);
+    return papel + btn(u, 'Remover acesso', { status: 'recusado', papel: 'membro' }, 'perigo', `Remover o acesso de ${u.nome} ao repertório?`);
   };
   return {
     html: `
@@ -567,7 +666,7 @@ function telaEditarHino(id) {
   if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode editar hinos.</p>' };
   const novo = id === 'novo';
   const h = novo
-    ? { id: novoId(), numero: Math.max(0, ...state.hinos.map((x) => x.numero)) + 1, titulo: '', cantor: '', estrofes: [], videoVoz: '', videoPlayback: '', grifosPadrao: {} }
+    ? { id: novoId(), criadoEm: Date.now(), numero: Math.max(0, ...state.hinos.map((x) => x.numero)) + 1, titulo: '', cantor: '', estrofes: [], videoVoz: '', videoPlayback: '', grifosPadrao: {} }
     : hinoPorId(id);
   if (!h) return { html: '<p class="vazio">Hino não encontrado.</p>' };
   const ytBusca = (extra) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${h.titulo} ${h.cantor} ${extra}`)}`;
@@ -632,7 +731,7 @@ function telaOrdem() {
 
 // ---------------- ações (delegação de cliques) ----------------
 const acoes = {
-  filtro(el) { ui.soFavoritos = el.dataset.v === '1'; render(true); },
+  filtro(el) { ui.soFavoritos = el.dataset.v === '1'; ui.soNovos = el.dataset.v === '2'; render(true); },
   async fav() {
     if (precisaLogin()) { toast('Entre com Google para salvar favoritos.'); return; }
     const id = rota().partes[1];
@@ -665,34 +764,38 @@ const acoes = {
   mes(el) { ui.mes = new Date(ui.mes.getFullYear(), ui.mes.getMonth() + Number(el.dataset.d), 1); render(true); },
   dia(el) {
     const d = el.dataset.d;
-    if (cultoPorData(d)) location.hash = `#/culto/${d}`;
-    else if (state.isAdmin) { ui.rascunhoCulto = null; location.hash = `#/culto/${d}?editar=1`; }
-    else toast('Nenhum culto marcado neste dia.');
+    const evs = eventosDoDia(d);
+    if (evs.length === 1 && !state.isAdmin) location.hash = `#/evento/${evs[0].id}`;
+    else if (evs.length || state.isAdmin) location.hash = `#/dia/${d}`;
+    else toast('Nada marcado neste dia.');
   },
-  cAdd(el) {
-    const r = ui.rascunhoCulto;
-    if (!r.hinos.includes(el.dataset.id)) r.hinos.push(el.dataset.id);
+  rTipo(el) { ui.rascunho.tipo = el.dataset.v; render(true); },
+  rAdd(el) {
+    const r = ui.rascunho;
+    if (!r.hinos.some((x) => x.id === el.dataset.id)) r.hinos.push({ id: el.dataset.id, solistas: [] });
     ui.cBusca = $('#c-busca').value;
     render(true);
     $('#c-busca').focus();
   },
-  cMover(el) { const r = ui.rascunhoCulto; const i = +el.dataset.i; const j = i + Number(el.dataset.d); [r.hinos[i], r.hinos[j]] = [r.hinos[j], r.hinos[i]]; render(true); },
-  cTirar(el) { ui.rascunhoCulto.hinos.splice(+el.dataset.i, 1); render(true); },
-  async cSalvar() {
-    const r = ui.rascunhoCulto;
-    r.titulo = $('#c-titulo').value.trim();
-    await api.salvarCulto({ data: r.data, titulo: r.titulo, hinos: r.hinos });
-    ui.rascunhoCulto = null; ui.cBusca = '';
-    toast('Culto salvo.');
-    location.hash = `#/culto/${r.data}`;
+  rMover(el) { const h = ui.rascunho.hinos; const i = +el.dataset.i; const j = i + Number(el.dataset.d); [h[i], h[j]] = [h[j], h[i]]; render(true); },
+  rTirar(el) { ui.rascunho.hinos.splice(+el.dataset.i, 1); render(true); },
+  rTirarSolista(el) { ui.rascunho.hinos[+el.dataset.i].solistas.splice(+el.dataset.j, 1); render(true); },
+  async rSalvar() {
+    const { _chave, ...r } = ui.rascunho;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.data)) { toast('Escolha a data.'); return; }
+    r.titulo = r.titulo.trim(); r.obs = r.obs.trim();
+    await api.salvarEvento(r);
+    ui.rascunho = null; ui.cBusca = '';
+    toast(`${TIPOS[r.tipo]} salvo.`);
+    location.hash = `#/evento/${r.id}`;
   },
-  cCancelar() { ui.rascunhoCulto = null; ui.cBusca = ''; },
-  async cExcluir() {
-    const r = ui.rascunhoCulto;
-    if (!confirm('Excluir este culto da agenda?')) return;
-    await api.excluirCulto(r.data);
-    ui.rascunhoCulto = null;
-    location.hash = '#/agenda';
+  rCancelar() { ui.rascunho = null; ui.cBusca = ''; },
+  async rExcluir() {
+    const r = ui.rascunho;
+    if (!confirm(`Excluir este ${TIPOS[r.tipo].toLowerCase()} da agenda?`)) return;
+    await api.excluirEvento(r.id);
+    ui.rascunho = null;
+    location.hash = `#/dia/${r.data}`;
   },
   async excluirHino() {
     const id = rota().partes[1];

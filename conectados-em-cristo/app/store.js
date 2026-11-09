@@ -2,14 +2,14 @@
 //
 // Acesso: somente com conta Google.
 //   - No primeiro login a pessoa fica "pendente" até um admin aprovar.
-//   - Só aprovados veem o hinário. Admins aprovam e definem membro/admin.
+//   - Só aprovados veem o repertório. Admins aprovam e definem membro/admin.
 //   - O proprietário (DONO_EMAIL em config.js) é sempre admin.
 import { firebaseConfig, DONO_EMAIL } from './config.js';
 import { SEED } from './seed.js';
 
 export const state = {
   hinos: [],
-  cultos: [],
+  eventos: [],         // cultos e ensaios: { id, data, hora, tipo, titulo, obs, hinos: [{ id, solistas: [{ uid, nome }] }] }
   user: null,          // { uid, nome, email, foto }
   isAdmin: false,
   isDono: false,       // proprietário (DONO_EMAIL)
@@ -76,15 +76,15 @@ export const api = {
     emit();
     await impl.delHino(id);
   },
-  async salvarCulto(c) {
-    upsert(state.cultos, 'data', c);
+  async salvarEvento(e) {
+    upsert(state.eventos, 'id', e);
     emit();
-    await impl.putCulto(c);
+    await impl.putEvento(e);
   },
-  async excluirCulto(data) {
-    state.cultos = state.cultos.filter((c) => c.data !== data);
+  async excluirEvento(id) {
+    state.eventos = state.eventos.filter((e) => e.id !== id);
     emit();
-    await impl.delCulto(data);
+    await impl.delEvento(id);
   },
   async salvarPerfil() {
     emit();
@@ -111,13 +111,13 @@ export const api = {
 // fluxo de aprovação e os papéis num aparelho só.
 // =====================================================================
 function demo() {
-  const K = 'cec-demo-v3';
+  const K = 'cec-demo-v4';
   let db = null;
   try { db = JSON.parse(localStorage.getItem(K)); } catch {}
-  if (!db) db = { hinos: clone(SEED), cultos: [], contas: [], sessao: null };
+  if (!db) db = { hinos: clone(SEED), eventos: [], contas: [], sessao: null };
   state.modo = 'demo';
   state.hinos = db.hinos;
-  state.cultos = db.cultos;
+  state.eventos = db.eventos;
 
   const save = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch {} };
   const aplicar = () => {
@@ -129,6 +129,7 @@ function demo() {
     state.user = c ? { uid: c.uid, nome: c.nome, email: c.email } : null;
     state.status = !c ? 'anonimo' : (state.isAdmin ? 'aprovado' : c.status);
     state.perfil = c ? c.perfil : perfilVazio();
+    if (c) c.perfil.desde = c.criadoEm;
     state.usuarios = state.isAdmin
       ? db.contas.map(({ uid, nome, email, status, papel, criadoEm }) => ({
         uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: email === DONO_EMAIL,
@@ -139,9 +140,9 @@ function demo() {
   };
   aplicar();
 
-  const salvar = () => { db.hinos = state.hinos; db.cultos = state.cultos; save(); };
+  const salvar = () => { db.hinos = state.hinos; db.eventos = state.eventos; save(); };
   return {
-    putHinos: salvar, delHino: salvar, putCulto: salvar, delCulto: salvar, putPerfil: save,
+    putHinos: salvar, delHino: salvar, putEvento: salvar, delEvento: salvar, putPerfil: save,
     entrarGoogle(simulado) {
       const nome = String(simulado?.nome || '').trim();
       const email = normEmail(simulado?.email);
@@ -192,8 +193,8 @@ async function firebase(cfg) {
       state.hinos = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       emit();
     }, () => {});
-    const b = F.onSnapshot(F.collection(db, 'cultos'), (s) => {
-      state.cultos = s.docs.map((d) => ({ data: d.id, ...d.data() }));
+    const b = F.onSnapshot(F.collection(db, 'eventos'), (s) => {
+      state.eventos = s.docs.map((d) => ({ id: d.id, ...d.data() }));
       emit();
     }, () => {});
     parar.dados = () => { a(); b(); };
@@ -212,7 +213,7 @@ async function firebase(cfg) {
 
   await new Promise((pronto) => A.onAuthStateChanged(auth, async (u) => {
     Object.keys(parar).forEach(desligar);
-    Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], cultos: [] });
+    Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], eventos: [] });
     if (!u) { emit(); pronto(); return; }
 
     state.user = { uid: u.uid, nome: u.displayName || u.email, email: u.email, foto: u.photoURL };
@@ -236,7 +237,7 @@ async function firebase(cfg) {
     // o próprio cadastro: aprovação, papel, favoritos e grifos chegam ao vivo
     parar.perfil = F.onSnapshot(ref, (d) => {
       const dados = d.data() || {};
-      state.perfil = { ...perfilVazio(), favoritos: dados.favoritos || [], grifos: dados.grifos || {} };
+      state.perfil = { ...perfilVazio(), favoritos: dados.favoritos || [], grifos: dados.grifos || {}, vistos: dados.vistos || [], desde: dados.criadoEm || 0 };
       state.papel = admNato ? 'admin' : (dados.papel || 'membro');
       state.isAdmin = admNato || (dados.papel === 'admin' && dados.status === 'aprovado');
       state.status = state.isAdmin ? 'aprovado' : (dados.status || 'pendente');
@@ -266,9 +267,9 @@ async function firebase(cfg) {
       await b.commit();
     },
     delHino: (id) => F.deleteDoc(F.doc(db, 'hinos', id)),
-    putCulto: ({ data, ...resto }) => F.setDoc(F.doc(db, 'cultos', data), resto),
-    delCulto: (data) => F.deleteDoc(F.doc(db, 'cultos', data)),
-    putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {} }),
+    putEvento: (e) => F.setDoc(F.doc(db, 'eventos', e.id), semId(e)),
+    delEvento: (id) => F.deleteDoc(F.doc(db, 'eventos', id)),
+    putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {}, vistos: p.vistos || [] }),
     entrarGoogle: () => tentar(async () => {
       const prov = new A.GoogleAuthProvider();
       prov.setCustomParameters({ prompt: 'select_account' });

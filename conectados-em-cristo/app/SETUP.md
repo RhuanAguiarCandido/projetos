@@ -1,4 +1,4 @@
-# Colocar o Hinário no ar
+# Colocar o Repertório no ar
 
 Projeto Firebase: **`conectados-em-cristo-fe363`**
 (<https://console.firebase.google.com/project/conectados-em-cristo-fe363/overview>)
@@ -14,7 +14,7 @@ Faça tudo logado com **rhuan.4b@gmail.com**, o proprietário do app.
    `southamerica-east1 (São Paulo)`, modo **produção**.
    (As regras de segurança são publicadas junto com o app; não precisa colar.)
 3. **⚙ Configurações do projeto → Geral → Seus apps → ícone Web `</>`**:
-   apelido `Hinário`, registre. Não precisa copiar o código que aparece:
+   apelido `Repertório`, registre. Não precisa copiar o código que aparece:
    publicado no Firebase, o app lê essa configuração sozinho.
 
 ## 2. Plano de cobrança
@@ -52,7 +52,7 @@ publicada sozinha.
    Actions → New repository secret**: nome `FIREBASE_SERVICE_ACCOUNT`, valor:
    todo o conteúdo do `.json`.
 4. Junte a branch do app na `main` (pull request). A aba **Actions** mostra
-   "Publicar Hinário"; dá para rodar à mão também (*Run workflow*).
+   "Publicar Repertório"; dá para rodar à mão também (*Run workflow*).
 
 ## 4. Primeiro acesso
 1. Abra <https://conectados-em-cristo-fe363.web.app> e toque em **Continuar com

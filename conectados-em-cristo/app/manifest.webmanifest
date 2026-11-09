@@ -1,7 +1,7 @@
 {
-  "name": "Hinário Conectados em Cristo",
-  "short_name": "Hinário",
-  "description": "Hinário do Grupo de Jovens Conectados em Cristo",
+  "name": "Repertório Conectados em Cristo",
+  "short_name": "Repertório",
+  "description": "Repertório do Grupo de Jovens Conectados em Cristo",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

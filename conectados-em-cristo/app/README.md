@@ -5,10 +5,9 @@ instalado na tela inicial ("Adicionar à tela de início").
 
 ## O que ele faz
 
-**Acesso com aprovação**
-- Quem quer usar abre o app e faz o **cadastro** (nome, e-mail e senha) ou
-  entra com Google.
-- O cadastro fica **aguardando aprovação**; até lá a pessoa só vê essa tela.
+**Acesso só com conta Google, com aprovação**
+- Quem quer usar abre o app e toca em **Continuar com Google**.
+- No primeiro acesso a pessoa fica **aguardando aprovação**; até lá só vê essa tela.
 - Os admins veem os pedidos em **Conta → Usuários** (com aviso na tela inicial e
   um número no ícone *Conta*) e aprovam como **membro** ou **admin**, ou recusam.
   Assim que é aprovado, o hinário abre sozinho no celular da pessoa.
@@ -30,8 +29,8 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Tela sempre acesa** enquanto a letra está aberta
 - **Funciona sem internet** depois de aberto uma vez (o áudio precisa de internet)
 
-**Para o Adm** (entra pelo link *Acesso do Adm*, na tela de entrada, com usuário e senha)
-- Aprovar cadastros, definir quem é membro ou admin, remover acesso
+**Para admins**
+- Aprovar pedidos de acesso, definir quem é membro ou admin, remover acesso
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
@@ -49,8 +48,9 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-Na tela de entrada, faça um cadastro de teste; depois clique em **Acesso do Adm**
-(usuário e senha do Adm) para aprovar o cadastro em **Conta → Cadastros**.
+No modo demonstração o login Google é **simulado** (você digita nome e e-mail).
+Entre com um e-mail qualquer (fica aguardando), saia e entre com
+`rhuan.4b@gmail.com` (proprietário) para aprovar em **Conta → Usuários**.
 
 Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 [SETUP.md](SETUP.md).

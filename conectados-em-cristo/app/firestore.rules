@@ -1,16 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function logado() { return request.auth != null; }
+    // só aceita login com conta Google
+    function logado() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
     function meuEmail() { return request.auth.token.email; }
 
     // Proprietário: rhuan.4b@gmail.com com e-mail verificado (login Google)
     function dono() {
       return logado() && meuEmail() == 'rhuan.4b@gmail.com' && request.auth.token.email_verified == true;
-    }
-    // Conta fixa "admin" (usuário e senha): liberada por um documento em /admins
-    function contaFixa() {
-      return logado() && exists(/databases/$(database)/documents/admins/$(meuEmail()));
     }
     function meuCadastro() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
@@ -18,9 +17,9 @@ service cloud.firestore {
     function temCadastro() {
       return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
     }
-    // Admin: proprietário, conta fixa, ou membro aprovado com papel "admin"
+    // Admin: proprietário ou membro aprovado com papel "admin"
     function adm() {
-      return dono() || contaFixa()
+      return dono()
         || (temCadastro() && meuCadastro().papel == 'admin' && meuCadastro().status == 'aprovado');
     }
     function aprovado() {
@@ -39,25 +38,17 @@ service cloud.firestore {
       function ehDoProprietario() { return resource.data.email == 'rhuan.4b@gmail.com'; }
 
       allow read: if meu() || adm();
-      // ao se cadastrar: só o próprio registro, como membro pendente
+      // primeiro login: só o próprio registro, como membro pendente
       allow create: if meu() && (
-        (campos().status == 'pendente' && campos().papel == 'membro' && campos().get('adm', false) == false)
-        || dono() || contaFixa());
+        (campos().status == 'pendente' && campos().papel == 'membro') || dono());
       // a própria pessoa salva favoritos e grifos, mas não muda status, papel nem e-mail
       allow update: if
         (meu() && campos().status == resource.data.status
                && campos().get('papel', 'membro') == resource.data.get('papel', 'membro')
-               && campos().email == resource.data.email
-               && campos().get('adm', false) == resource.data.get('adm', false))
+               && campos().email == resource.data.email)
         || (adm() && !ehDoProprietario() && campos().email == resource.data.email)
         || (dono() && meu());
       allow delete: if adm() && !ehDoProprietario();
-    }
-
-    // Conta fixa do Adm: só se cria pelo console do Firebase
-    match /admins/{email} {
-      allow read: if logado() && meuEmail() == email;
-      allow write: if false;
     }
   }
 }

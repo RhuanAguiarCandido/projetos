@@ -1,10 +1,10 @@
 // Camada de dados: Firebase (online, compartilhado) ou modo demonstração (localStorage).
 //
-// Acesso:
-//   - Quem quer usar faz o cadastro (nome, e-mail, senha) ou entra com Google.
-//   - O cadastro fica "pendente" até o Adm aprovar. Só aprovados (e o Adm) veem o hinário.
-//   - O Adm entra com usuário + senha (ADMIN_USUARIO em config.js).
-import { firebaseConfig, ADMIN_USUARIO, ADMIN_EMAIL, DONO_EMAIL } from './config.js';
+// Acesso: somente com conta Google.
+//   - No primeiro login a pessoa fica "pendente" até um admin aprovar.
+//   - Só aprovados veem o hinário. Admins aprovam e definem membro/admin.
+//   - O proprietário (DONO_EMAIL em config.js) é sempre admin.
+import { firebaseConfig, DONO_EMAIL } from './config.js';
 import { SEED } from './seed.js';
 
 export const state = {
@@ -22,16 +22,6 @@ export const state = {
   erro: null,
 };
 export const temAcesso = () => state.isAdmin || state.status === 'aprovado';
-
-// O Firebase exige senha com 6+ caracteres; este sufixo é somado à senha do Adm.
-const SUFIXO_SENHA_ADM = '-cec';
-// Modo demonstração: só o hash SHA-256 da senha do Adm fica no código, nunca a senha.
-const HASH_SENHA_ADM_DEMO = '1118ebe7618c13369a6a50e238ab3d3953e271c22e9614c72f5ebd5c8060d7d0';
-
-async function sha256(t) {
-  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
-  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
-}
 
 const listeners = new Set();
 export const onChange = (f) => listeners.add(f);
@@ -89,22 +79,8 @@ export const api = {
   },
   importarRepertorio: () => api.salvarHinos(clone(SEED)),
 
-  // ---- acesso ----
-  async cadastrar(nome, email, senha) {
-    nome = String(nome || '').trim();
-    email = normEmail(email);
-    if (nome.length < 2) throw erro('Informe seu nome.');
-    if (!/^\S+@\S+\.\S+$/.test(email)) throw erro('E-mail inválido.');
-    if (String(senha).length < 6) throw erro('A senha precisa ter pelo menos 6 caracteres.');
-    await impl.cadastrar(nome, email, senha);
-  },
-  entrar: (email, senha) => impl.entrar(normEmail(email), senha),
-  entrarGoogle: () => impl.entrarGoogle(),
-  async loginAdm(usuario, senha) {
-    if (String(usuario).trim().toLowerCase() !== ADMIN_USUARIO || !senha) throw erro('Usuário ou senha incorretos.');
-    await impl.loginAdm(senha);
-  },
-  esqueciSenha: (email) => impl.esqueciSenha(normEmail(email)),
+  // ---- acesso (só Google) ----
+  entrarGoogle: (simulado) => impl.entrarGoogle(simulado),
   logout: () => impl.logout(),
   // Adm aprova/recusa (status) e define membro/admin (papel). O proprietário não pode ser alterado.
   async atualizarUsuario(uid, mudancas) {
@@ -118,13 +94,14 @@ export const api = {
 
 // =====================================================================
 // Modo demonstração: tudo no localStorage deste aparelho.
-// Dá para simular vários cadastros e aprová-los como Adm no mesmo aparelho.
+// O login com Google é SIMULADO (nome + e-mail digitados), só para testar o
+// fluxo de aprovação e os papéis num aparelho só.
 // =====================================================================
 function demo() {
-  const K = 'cec-demo-v2';
+  const K = 'cec-demo-v3';
   let db = null;
   try { db = JSON.parse(localStorage.getItem(K)); } catch {}
-  if (!db) db = { hinos: clone(SEED), cultos: [], contas: [], sessao: null, perfilAdm: perfilVazio() };
+  if (!db) db = { hinos: clone(SEED), cultos: [], contas: [], sessao: null };
   state.modo = 'demo';
   state.hinos = db.hinos;
   state.cultos = db.cultos;
@@ -132,24 +109,17 @@ function demo() {
   const save = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch {} };
   const aplicar = () => {
     const c = db.contas.find((x) => x.uid === db.sessao);
-    state.isDono = false;
-    state.papel = db.sessao === 'adm' ? 'admin' : (c?.papel || 'membro');
-    state.isAdmin = db.sessao === 'adm' || (c?.papel === 'admin' && c?.status === 'aprovado');
-    if (db.sessao === 'adm') {
-      state.user = { uid: 'adm', nome: 'Administrador', email: ADMIN_USUARIO };
-      state.status = 'aprovado';
-      state.perfil = db.perfilAdm;
-    } else if (c) {
-      state.user = { uid: c.uid, nome: c.nome, email: c.email };
-      state.status = c.status;
-      state.perfil = c.perfil;
-    } else {
-      state.user = null;
-      state.status = 'anonimo';
-      state.perfil = perfilVazio();
-    }
+    const dono = !!c && c.email === DONO_EMAIL;
+    state.isDono = dono;
+    state.papel = dono ? 'admin' : (c?.papel || 'membro');
+    state.isAdmin = dono || (c?.papel === 'admin' && c?.status === 'aprovado');
+    state.user = c ? { uid: c.uid, nome: c.nome, email: c.email } : null;
+    state.status = !c ? 'anonimo' : (state.isAdmin ? 'aprovado' : c.status);
+    state.perfil = c ? c.perfil : perfilVazio();
     state.usuarios = state.isAdmin
-      ? db.contas.map(({ uid, nome, email, status, papel, criadoEm }) => ({ uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: false }))
+      ? db.contas.map(({ uid, nome, email, status, papel, criadoEm }) => ({
+        uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: email === DONO_EMAIL,
+      }))
       : [];
     save();
     emit();
@@ -159,26 +129,20 @@ function demo() {
   const salvar = () => { db.hinos = state.hinos; db.cultos = state.cultos; save(); };
   return {
     putHinos: salvar, delHino: salvar, putCulto: salvar, delCulto: salvar, putPerfil: save,
-    async cadastrar(nome, email, senha) {
-      if (db.contas.some((c) => c.email === email)) throw erro('Este e-mail já tem cadastro. Use "Entrar".');
-      const uid = 'u' + Date.now().toString(36);
-      db.contas.push({ uid, nome, email, hash: await sha256(email + ':' + senha), status: 'pendente', papel: 'membro', criadoEm: Date.now(), perfil: perfilVazio() });
-      db.sessao = uid;
-      aplicar();
-    },
-    async entrar(email, senha) {
-      const c = db.contas.find((x) => x.email === email);
-      if (!c || c.hash !== (await sha256(email + ':' + senha))) throw erro('E-mail ou senha incorretos.');
+    entrarGoogle(simulado) {
+      const nome = String(simulado?.nome || '').trim();
+      const email = normEmail(simulado?.email);
+      if (!/^\S+@\S+\.\S+$/.test(email)) throw erro('Digite um e-mail válido.');
+      let c = db.contas.find((x) => x.email === email);
+      if (!c) {
+        const dono = email === DONO_EMAIL;
+        c = { uid: 'u' + Date.now().toString(36), nome: nome || email, email, criadoEm: Date.now(),
+          status: dono ? 'aprovado' : 'pendente', papel: dono ? 'admin' : 'membro', perfil: perfilVazio() };
+        db.contas.push(c);
+      }
       db.sessao = c.uid;
       aplicar();
     },
-    entrarGoogle() { throw erro('O login com Google só funciona com o app ligado ao Firebase.'); },
-    async loginAdm(senha) {
-      if ((await sha256(senha)) !== HASH_SENHA_ADM_DEMO) throw erro('Usuário ou senha incorretos.');
-      db.sessao = 'adm';
-      aplicar();
-    },
-    esqueciSenha() { throw erro('No modo demonstração não há envio de e-mail.'); },
     logout() { db.sessao = null; aplicar(); },
     atualizarUsuario(uid, mudancas) {
       const c = db.contas.find((x) => x.uid === uid);
@@ -189,7 +153,7 @@ function demo() {
 }
 
 // =====================================================================
-// Modo online: Firebase Auth (e-mail/senha e Google) + Firestore
+// Modo online: Firebase Auth (Google) + Firestore
 // =====================================================================
 async function firebase() {
   const B = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -226,7 +190,6 @@ async function firebase() {
     parar.usuarios = F.onSnapshot(F.collection(db, 'usuarios'), (s) => {
       state.usuarios = s.docs
         .map((d) => ({ uid: d.id, ...d.data() }))
-        .filter((u) => !u.adm) // esconde a conta fixa "admin"
         .map(({ uid, nome, email, status, papel, criadoEm }) => ({
           uid, nome, email, status, papel: papel || 'membro', criadoEm, dono: email === DONO_EMAIL,
         }));
@@ -234,19 +197,15 @@ async function firebase() {
     }, () => {});
   };
 
-  let nomeDoCadastro = null; // nome digitado no cadastro, usado ao criar o documento
   await new Promise((pronto) => A.onAuthStateChanged(auth, async (u) => {
     Object.keys(parar).forEach(desligar);
     Object.assign(state, { user: null, isAdmin: false, isDono: false, papel: 'membro', status: 'anonimo', perfil: perfilVazio(), usuarios: [], hinos: [], cultos: [] });
     if (!u) { emit(); pronto(); return; }
 
-    state.user = { uid: u.uid, nome: u.displayName || nomeDoCadastro || u.email, email: u.email, foto: u.photoURL };
-    // proprietário: só vale com e-mail verificado (login Google)
+    state.user = { uid: u.uid, nome: u.displayName || u.email, email: u.email, foto: u.photoURL };
+    // proprietário: e-mail do dono, verificado pelo Google
     const dono = u.email === DONO_EMAIL && u.emailVerified;
-    // conta fixa do Adm (usuário "admin"): liberada pela coleção "admins" no console
-    let contaFixa = false;
-    try { contaFixa = (await F.getDoc(F.doc(db, 'admins', u.email))).exists(); } catch {}
-    const admNato = dono || contaFixa;
+    const admNato = dono;
     state.isDono = dono;
 
     const ref = F.doc(db, 'usuarios', u.uid);
@@ -255,12 +214,11 @@ async function firebase() {
       if (!snap.exists()) {
         await F.setDoc(ref, {
           nome: state.user.nome, email: u.email, criadoEm: Date.now(),
-          status: admNato ? 'aprovado' : 'pendente', papel: admNato ? 'admin' : 'membro', adm: contaFixa,
+          status: admNato ? 'aprovado' : 'pendente', papel: admNato ? 'admin' : 'membro',
           ...perfilVazio(),
         });
       }
     } catch (e) { console.error(e); }
-    nomeDoCadastro = null;
 
     // o próprio cadastro: aprovação, papel, favoritos e grifos chegam ao vivo
     parar.perfil = F.onSnapshot(ref, (d) => {
@@ -281,8 +239,6 @@ async function firebase() {
   const semId = ({ id, ...resto }) => resto;
   const traduz = (e) => {
     const c = e?.code || '';
-    if (c.includes('email-already-in-use')) return erro('Este e-mail já tem cadastro. Use "Entrar".');
-    if (c.includes('invalid-credential') || c.includes('wrong-password') || c.includes('user-not-found')) return erro('E-mail ou senha incorretos.');
     if (c.includes('too-many-requests')) return erro('Muitas tentativas. Espere alguns minutos.');
     if (c.includes('popup-closed')) return erro('Login cancelado.');
     if (c.includes('network')) return erro('Sem conexão com a internet.');
@@ -300,15 +256,17 @@ async function firebase() {
     putCulto: ({ data, ...resto }) => F.setDoc(F.doc(db, 'cultos', data), resto),
     delCulto: (data) => F.deleteDoc(F.doc(db, 'cultos', data)),
     putPerfil: (p) => state.user && F.updateDoc(F.doc(db, 'usuarios', state.user.uid), { favoritos: p.favoritos || [], grifos: p.grifos || {} }),
-    cadastrar: (nome, email, senha) => tentar(async () => {
-      nomeDoCadastro = nome;
-      const cred = await A.createUserWithEmailAndPassword(auth, email, senha);
-      await A.updateProfile(cred.user, { displayName: nome });
+    entrarGoogle: () => tentar(async () => {
+      const prov = new A.GoogleAuthProvider();
+      prov.setCustomParameters({ prompt: 'select_account' });
+      try {
+        await A.signInWithPopup(auth, prov);
+      } catch (e) {
+        // app instalado / navegador que bloqueia pop-up: faz o login redirecionando a página
+        if (/popup-blocked|operation-not-supported|cancelled-popup/.test(e?.code || '')) await A.signInWithRedirect(auth, prov);
+        else throw e;
+      }
     }),
-    entrar: (email, senha) => tentar(() => A.signInWithEmailAndPassword(auth, email, senha)),
-    entrarGoogle: () => tentar(() => A.signInWithPopup(auth, new A.GoogleAuthProvider())),
-    loginAdm: (senha) => tentar(() => A.signInWithEmailAndPassword(auth, ADMIN_EMAIL, senha + SUFIXO_SENHA_ADM)),
-    esqueciSenha: (email) => tentar(() => A.sendPasswordResetEmail(auth, email)),
     logout: () => A.signOut(auth),
     atualizarUsuario: (uid, mudancas) => F.updateDoc(F.doc(db, 'usuarios', uid), mudancas),
   };

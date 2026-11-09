@@ -248,3 +248,5 @@ body.bloqueado { padding-bottom: 24px; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; font-weight: 600; }
 .seg button.on { background: var(--preto); color: var(--areia); }
 .linha.cadastro .acoes { flex-wrap: wrap; align-items: center; }
+.esquerda { text-align: left; }
+.btn.google { gap: 10px; border-color: var(--linha); color: var(--texto); }

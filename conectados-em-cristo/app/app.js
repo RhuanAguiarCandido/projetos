@@ -62,6 +62,8 @@ function aplicarAparencia(a) {
     '--preto': t.preto, '--areia': t.areia, '--areia-claro': t.fundo, '--branco': t.cartao, '--linha': t.linha,
     '--areia-escuro': t.suave, '--texto': t.texto, '--texto-suave': t.textoSuave,
     '--tinta': t.escuro ? t.texto : '#000000', '--vinho': a.destaque || t.vinho,
+    // destaque usado como COR DE TEXTO: nos temas escuros vira o tom claro do tema, para ler bem
+    '--destaque-texto': t.escuro ? t.areia : (a.destaque || t.vinho),
   };
   Object.entries(vars).forEach(([k, v]) => r.style.setProperty(k, v));
   r.dataset.tema = TEMAS[a.tema] ? a.tema : 'areia';
@@ -1119,6 +1121,11 @@ fetch('version.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => {
 
 window.addEventListener('hashchange', () => { ui.sheet = null; render(true); window.scrollTo(0, 0); });
 onChange(() => { sincronizarAparencia(); render(); });
+
+// A barra de baixo é montada aqui (e não só no index.html), para que os 4 ícones
+// apareçam mesmo se o celular estiver com uma página antiga guardada.
+const NAV = [['inicio', '#/', '⌂', 'Início'], ['hinos', '#/hinos', '♫', 'Hinos'], ['agenda', '#/agenda', '▦', 'Agenda'], ['conta', '#/conta', '●', 'Conta']];
+$('.nav').innerHTML = NAV.map(([k, href, ic, nome]) => `<a href="${href}" data-nav="${k}"><span>${ic}</span>${nome}</a>`).join('');
 
 init();
 render(true);

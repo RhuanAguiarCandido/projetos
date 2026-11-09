@@ -317,12 +317,12 @@ body.bloqueado .portao { min-height: calc(100vh - 24px); min-height: calc(100dvh
   border: 1px solid var(--linha); border-left: 5px solid var(--vinho); border-radius: var(--raio);
   padding: 14px 16px; margin-bottom: 14px;
 }
-.card-devocional small { display: block; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--vinho); }
+.card-devocional small { display: block; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--destaque-texto, var(--vinho)); }
 .card-devocional blockquote, .devocional blockquote {
   margin: 8px 0 4px; font-family: var(--fonte-letra); font-size: 18px; line-height: 1.45; font-style: italic;
 }
 .card-devocional cite, .devocional cite { display: block; font-style: normal; font-weight: 700; font-size: 14px; color: var(--texto-suave); }
-.card-devocional .ler { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 14px; color: var(--vinho); }
+.card-devocional .ler { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 14px; color: var(--destaque-texto, var(--vinho)); }
 a.card-devocional:active { background: var(--areia-claro); }
 .devocional { padding: 4px 0 16px; }
 .devocional blockquote { font-size: 22px; border-left: 4px solid var(--vinho); padding-left: 14px; margin: 8px 0; }
@@ -333,7 +333,7 @@ a.card-devocional:active { background: var(--areia-claro); }
 /* atalhos da tela inicial */
 .atalhos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 4px 0 8px; }
 .atalho { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--texto); background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; }
-.atalho b { font-size: 22px; color: var(--vinho); line-height: 1.1; }
+.atalho b { font-size: 22px; color: var(--destaque-texto, var(--vinho)); line-height: 1.1; }
 .atalho span { font-weight: 700; }
 .atalho small { color: var(--texto-suave); font-size: 12px; }
 .atalho:active { background: var(--areia-claro); }

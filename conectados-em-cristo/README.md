@@ -25,3 +25,7 @@ Ambas em PNG com fundo transparente.
 [`repertorio/`](repertorio/) — 41 hinos com links de voz, playback e letra.
 
 
+
+## App
+
+[`app/`](app/) — Hinário (PWA): busca, letras, áudio, grifos, favoritos e agenda de cultos.

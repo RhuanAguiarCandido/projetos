@@ -172,21 +172,50 @@ function linhaHino(h, extra = '') {
   </a>`;
 }
 
+// texto só com letras, números e espaços simples (para comparar sem acento nem pontuação)
+const limpo = (s) => norm(s).replace(/[^a-z0-9]+/g, ' ').trim();
+const palavras = (s) => limpo(s).split(' ').filter(Boolean);
+
+// Quão bem o hino combina com a busca (0 = não combina; menor = melhor):
+//   1 título começa com o que foi digitado · 2 título tem palavras que começam assim
+//   3 cantor (ou título + cantor) · 4 trecho exato da letra (a partir de 3 letras)
+function pontuar(h, q) {
+  const termos = palavras(q);
+  if (!termos.length) return 0;
+  const titulo = limpo(h.titulo);
+  const ptTitulo = palavras(h.titulo);
+  const ptTudo = [...ptTitulo, ...palavras(h.cantor)];
+  const todosComecam = (lista) => termos.every((t) => lista.some((p) => p.startsWith(t)));
+  if (titulo.startsWith(termos.join(' '))) return 1;
+  if (todosComecam(ptTitulo)) return 2;
+  if (todosComecam(ptTudo)) return 3;
+  const trecho = termos.join(' ');
+  if (trecho.length >= 3 && limpo((h.estrofes || []).map((e) => e.texto).join(' ')).includes(trecho)) return 4;
+  return 0;
+}
+
+// devolve [{ h, naLetra }]: naLetra = achado só por um trecho da letra
 function listaFiltrada() {
-  const q = norm(ui.busca.trim());
-  return ordenados().filter((h) => {
+  const q = ui.busca.trim();
+  const base = ordenados().filter((h) => {
     if (ui.soFavoritos && !state.perfil.favoritos?.includes(h.id)) return false;
     if (ui.soNovos && !ehNovo(h)) return false;
-    if (!q) return true;
-    if (/^\d+$/.test(q)) return String(h.numero).startsWith(String(Number(q)));
-    return norm(`${h.titulo} ${h.cantor} ${(h.estrofes || []).map((e) => e.texto).join(' ')}`).includes(q);
+    return true;
   });
+  if (!q) return base.map((h) => ({ h }));
+  if (/^\d+$/.test(q)) return base.filter((h) => String(h.numero).startsWith(String(Number(q)))).map((h) => ({ h }));
+  return base
+    .map((h) => ({ h, p: pontuar(h, q) }))
+    .filter((x) => x.p > 0)
+    .sort((a, b) => a.p - b.p || a.h.numero - b.h.numero)
+    .map((x) => ({ h: x.h, naLetra: x.p === 4 }));
 }
 
 function htmlLista() {
   const l = listaFiltrada();
   if (!l.length) return `<p class="vazio">${ui.soFavoritos && !ui.busca ? 'Você ainda não tem favoritos. Toque na ☆ de um hino para salvar aqui.' : 'Nenhum hino encontrado.'}</p>`;
-  return l.map((h) => linhaHino(h)).join('');
+  const i = l.findIndex((x) => x.naLetra);
+  return l.map((x, k) => (k === i ? '<p class="grupo-busca">Encontrados na letra</p>' : '') + linhaHino(x.h)).join('');
 }
 
 // ---------------- devocionais ----------------

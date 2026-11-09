@@ -311,6 +311,7 @@ body.bloqueado .portao { min-height: calc(100vh - 24px); min-height: calc(100dvh
 .previa { border-radius: 12px; padding: 12px; background: var(--areia-claro); border: 1px dashed var(--areia-escuro); }
 .letra .vazio { font-family: Inter, system-ui, sans-serif; }
 .grupo-temas { font-size: 13px; color: var(--texto-suave); margin: 12px 0 6px; font-weight: 600; }
+.grupo-busca { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); margin: 14px 2px 2px; font-weight: 700; }
 
 /* ---------- devocional ---------- */
 .card-devocional {

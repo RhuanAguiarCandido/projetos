@@ -1,0 +1,4 @@
+# Firebase (gerados ao publicar)
+.firebase/
+firebase-debug.log
+firestore-debug.log

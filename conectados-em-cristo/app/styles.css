@@ -1,0 +1,341 @@
+/* Paleta do grupo: Preto · Areia · Vinho */
+:root {
+  --preto: #000000;
+  --areia: #ECD3B5;
+  --vinho: #600F1E;
+  --areia-claro: #F8EEE2;
+  --areia-escuro: #D9BC98;
+  --texto: #1B1414;
+  --texto-suave: #6B5A4C;
+  --linha: #E3CDB1;
+  --branco: #FFFDF9;
+  --tinta: #000000;      /* texto forte, bordas de botões */
+  --fonte-letra: Inter, system-ui, sans-serif;
+  --raio: 14px;
+  --nav-h: 64px;
+  --player-h: 70px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--areia-claro);
+  color: var(--texto);
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  -webkit-tap-highlight-color: transparent;
+}
+body.com-player { padding-bottom: calc(var(--nav-h) + var(--player-h) + env(safe-area-inset-bottom) + 16px); }
+a { color: var(--vinho); }
+button { font: inherit; color: inherit; cursor: pointer; }
+h1, h2, .secao { font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: .02em; text-transform: uppercase; }
+
+#view { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+
+/* topo */
+.topo { display: flex; align-items: center; gap: 14px; background: var(--preto); color: var(--areia); margin: 0 -16px 16px; padding: 18px 16px; }
+.topo .logo { width: 64px; height: auto; background: var(--areia); border-radius: 12px; padding: 6px; }
+.topo h1 { margin: 0; font-size: 30px; line-height: 1; color: var(--areia); }
+.topo p { margin: 4px 0 0; font-size: 13px; opacity: .8; }
+.secao { font-size: 22px; margin: 22px 0 10px; color: var(--vinho); }
+h3.secao { font-size: 17px; }
+
+/* card do próximo culto */
+.card-culto { display: block; text-decoration: none; background: var(--vinho); color: var(--areia); border-radius: var(--raio); padding: 14px 16px; margin-bottom: 14px; }
+.card-culto small { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; opacity: .85; }
+.card-culto b { display: block; font-size: 18px; margin: 2px 0; }
+.card-culto span { font-size: 13px; opacity: .9; }
+
+/* busca e filtros */
+.busca input, .campo input, .campo textarea {
+  width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid var(--linha); background: var(--branco); color: var(--texto);
+}
+.busca input:focus, .campo input:focus, .campo textarea:focus { outline: none; border-color: var(--vinho); }
+.busca { margin: 0 0 10px; }
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { border: 1.5px solid var(--linha); background: var(--branco); border-radius: 999px; padding: 7px 13px; font-size: 14px; text-decoration: none; color: var(--texto); }
+.chip.on { background: var(--preto); border-color: var(--preto); color: var(--areia); }
+.chip.adm { border-color: var(--vinho); color: var(--vinho); margin-left: auto; }
+
+/* listas */
+.lista { display: flex; flex-direction: column; gap: 6px; }
+.linha {
+  display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; width: 100%; text-align: left;
+  background: var(--branco); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; min-height: 58px;
+}
+a.linha:active, button.linha:active { background: var(--areia); }
+.num { flex: none; min-width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--preto); color: var(--areia); font-weight: 700; font-variant-numeric: tabular-nums; padding: 0 6px; }
+.num.data, .num.ordem-n { flex-direction: column; line-height: 1.05; font-size: 16px; background: var(--vinho); }
+.num small { font-size: 10px; font-weight: 500; opacity: .85; }
+.info { flex: 1; min-width: 0; }
+.info b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info small { display: block; color: var(--texto-suave); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icones { display: flex; gap: 6px; align-items: center; color: var(--vinho); font-style: normal; flex: none; }
+.icones i { font-style: normal; font-size: 13px; }
+.icones i.falta { color: var(--texto-suave); font-size: 11px; border: 1px dashed var(--areia-escuro); border-radius: 6px; padding: 1px 5px; }
+.acoes { display: flex; gap: 4px; flex: none; }
+.vazio { text-align: center; color: var(--texto-suave); padding: 24px 8px; }
+.vazio .btn { margin: 6px 4px 0; }
+.dica { font-size: 13px; color: var(--texto-suave); margin: 8px 0; }
+.aviso { background: #FFF4D6; border: 1px solid #E9C766; border-radius: 12px; padding: 10px 12px; margin: 12px 0; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* botões */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
+  border: 1.5px solid var(--tinta); background: transparent; color: var(--tinta); border-radius: 999px;
+  padding: 10px 16px; font-weight: 600; font-size: 15px; min-height: 44px;
+}
+.btn.primario { background: var(--vinho); border-color: var(--vinho); color: var(--areia); }
+.btn.perigo { border-color: #A33; color: #A33; }
+.btn.pequeno { padding: 6px 12px; min-height: 34px; font-size: 13px; }
+.btn.largo { width: 100%; margin-top: 14px; }
+.btn.fraco { border-style: dashed; color: var(--texto-suave); border-color: var(--areia-escuro); }
+.botoes { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.botoes.col { flex-direction: column; }
+.icone { border: 1.5px solid var(--linha); background: var(--branco); border-radius: 10px; min-width: 40px; height: 40px; padding: 0 8px; font-weight: 700; }
+.icone:disabled { opacity: .3; }
+.icone.on { color: var(--vinho); border-color: var(--vinho); }
+.icone.perigo { color: #A33; }
+
+/* tela do hino */
+.hino-topo { display: flex; align-items: center; gap: 10px; padding: 14px 0 8px; }
+.voltar { font-size: 24px; text-decoration: none; color: var(--tinta); width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
+.titulo { flex: 1; display: flex; gap: 10px; align-items: center; min-width: 0; }
+.titulo h2 { margin: 0; font-size: 24px; line-height: 1.1; color: var(--tinta); }
+.titulo small { color: var(--texto-suave); }
+.ferramentas { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 0; }
+.ferramentas .grupo { display: flex; gap: 6px; align-items: center; }
+.ferramentas.sub { font-size: 14px; border-bottom: 1px solid var(--linha); padding-bottom: 10px; }
+.tam { min-width: 24px; text-align: center; font-variant-numeric: tabular-nums; color: var(--texto-suave); }
+.btn.audio { padding: 8px 14px; min-height: 40px; }
+.check { display: flex; gap: 6px; align-items: center; }
+.check input { width: 18px; height: 18px; accent-color: var(--vinho); }
+.tela-acesa { font-size: 12px; color: var(--texto-suave); }
+.link-adm { font-size: 14px; font-weight: 600; }
+
+.letra { font-family: var(--fonte-letra); font-size: var(--fonte, 20px); line-height: 1.5; padding: 6px 0 24px; }
+.estrofe { position: relative; padding: 10px 12px; margin: 0 -12px 10px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+.estrofe p { margin: 0; }
+.estrofe.grifada { background: var(--grifo); }
+.estrofe:active { outline: 2px dashed var(--areia-escuro); }
+.parte { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 6px; padding: 2px 8px; margin-bottom: 4px; }
+.parte.masc { background: var(--preto); color: var(--areia); }
+.parte.fem { background: var(--vinho); color: var(--areia); }
+.parte.todos { border: 1.5px solid var(--tinta); }
+.parte.solo { background: var(--areia-escuro); color: #1B1414; }
+
+.nav-culto { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--preto); margin: 0 -16px; padding: 10px 16px; font-size: 14px; }
+.nav-culto a { color: var(--areia); text-decoration: none; font-weight: 600; }
+.nav-culto .meio { font-weight: 400; opacity: .85; text-align: center; }
+
+/* folha de grifo */
+.sheet { position: fixed; inset: 0; z-index: 50; }
+.sheet .fundo { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+.sheet .painel {
+  position: absolute; left: 0; right: 0; bottom: 0; max-width: 720px; margin: 0 auto;
+  background: var(--branco); border-radius: 20px 20px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(0,0,0,.2);
+}
+.sheet .trecho { font-style: italic; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet h4 { margin: 16px 0 8px; font-size: 15px; }
+.sheet h4 small { font-weight: 400; color: var(--texto-suave); margin-left: 6px; }
+.cores { display: flex; gap: 10px; flex-wrap: wrap; }
+.cor { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(0,0,0,.12); padding: 0; display: grid; place-items: center; font-weight: 700; }
+.cor.on { outline: 3px solid var(--tinta); outline-offset: 2px; }
+.cor.livre { background: conic-gradient(#f66, #fd5, #6d6, #6cf, #a7f, #f66); position: relative; overflow: hidden; color: #000; }
+.cor.livre input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.cor.limpar { background: var(--branco); color: var(--texto-suave); }
+.partes { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn.fechar { width: 100%; margin-top: 18px; }
+
+/* calendário */
+.cal { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px; }
+.cal-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cal-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.cal-grade small { font-size: 12px; color: var(--texto-suave); padding: 4px 0; }
+.dia { position: relative; aspect-ratio: 1; border: 0; background: transparent; border-radius: 10px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.dia.hoje { outline: 2px solid var(--tinta); }
+.dia.culto { background: var(--vinho); color: var(--areia); font-weight: 700; }
+.dia i { position: absolute; top: 2px; right: 4px; font-style: normal; font-size: 10px; opacity: .9; }
+
+/* formulários e conta */
+.form { display: flex; flex-direction: column; gap: 6px; }
+.campo { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; margin: 8px 0 0; }
+.campo small { font-weight: 400; color: var(--texto-suave); }
+.campo textarea { line-height: 1.5; resize: vertical; }
+.duas { display: flex; gap: 10px; }
+.duas .campo { flex: 1; }
+.duas .campo.curto { flex: 0 0 96px; }
+.cartao { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 14px; }
+.cartao p { margin: 0 0 12px; }
+.usuario { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.usuario img { width: 44px; height: 44px; border-radius: 50%; }
+.usuario small { display: block; color: var(--texto-suave); }
+.selo { background: var(--vinho); color: var(--areia); border-radius: 6px; padding: 1px 6px; font-weight: 700; }
+.linha-pref { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; gap: 10px; }
+.linha-pref input { width: 20px; height: 20px; accent-color: var(--vinho); }
+.rodape { text-align: center; font-size: 12px; color: var(--texto-suave); margin: 24px 0; }
+
+/* player */
+.player {
+  position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 30;
+  background: var(--vinho); color: var(--areia); height: var(--player-h);
+}
+.player-barra { height: 3px; background: rgba(236,211,181,.25); }
+.player-barra span { display: block; height: 100%; width: 0; background: var(--areia); }
+.player-corpo { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 6px; padding: 6px 10px; height: calc(var(--player-h) - 3px); }
+.yt-mini { width: 96px; height: 54px; flex: none; border-radius: 6px; overflow: hidden; background: #000; }
+.player-info { flex: 1; min-width: 0; border: 0; background: none; color: inherit; text-align: left; padding: 0 4px; }
+.player-info b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-info small { font-size: 12px; opacity: .85; font-variant-numeric: tabular-nums; }
+.player .icone { background: transparent; border-color: rgba(236,211,181,.35); color: var(--areia); min-width: 38px; height: 38px; font-size: 13px; }
+.player .icone.grande { font-size: 16px; background: var(--areia); color: var(--vinho); border-color: var(--areia); }
+
+/* navegação inferior */
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; justify-content: space-around;
+  background: var(--preto); height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+}
+.nav a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: color-mix(in srgb, var(--areia) 60%, transparent); text-decoration: none; font-size: 12px; }
+.nav a span { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.nav a svg { width: 24px; height: 24px; display: block; }
+.nav a.ativo { color: var(--areia); font-weight: 700; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--nav-h) + 24px); transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--preto); color: var(--areia); padding: 10px 16px; border-radius: 999px; font-size: 14px; transition: .2s; z-index: 60; max-width: 90vw; text-align: center;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 380px) {
+  .yt-mini { width: 64px; height: 36px; }
+  .player .icone[data-s] { display: none; }
+}
+
+/* portão de acesso */
+body.bloqueado .nav, body.bloqueado .player { display: none; }
+body.bloqueado { padding-bottom: 24px; }
+.portao { max-width: 420px; margin: 0 auto; padding: 24px 0; }
+/* na tela de entrada, o conteúdo ocupa a altura toda para a logo da igreja ficar no pé */
+body.bloqueado .portao { min-height: calc(100vh - 24px); min-height: calc(100dvh - 24px); display: flex; flex-direction: column; }
+.rodape-igreja { margin-top: auto; padding-top: 28px; text-align: center; opacity: .55; }
+.rodape-igreja img { width: 56px; height: auto; display: inline-block; }
+.portao-logo { text-align: center; margin-bottom: 20px; }
+.portao-logo img { width: 140px; height: auto; background: var(--areia); border-radius: 20px; padding: 12px; }
+.portao-logo h1 { margin: 12px 0 0; font-size: 36px; color: var(--tinta); }
+.portao-logo p { margin: 4px 0 0; color: var(--texto-suave); font-size: 14px; }
+.portao .cartao h2, .portao .cartao h3 { margin: 4px 0 8px; }
+.portao .form .btn.largo { margin-top: 12px; }
+.centro { text-align: center; }
+.abas { display: flex; background: var(--areia); border-radius: 999px; padding: 4px; margin-bottom: 12px; }
+.abas button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 10px; font-weight: 600; color: var(--texto-suave); }
+.abas button.on { background: var(--preto); color: var(--areia); }
+.btn-link { display: block; margin: 12px auto 0; border: 0; background: none; color: var(--vinho); font-weight: 600; font-size: 14px; text-decoration: underline; padding: 8px; }
+.adm-link { color: var(--texto-suave); font-weight: 500; }
+.ou { display: flex; align-items: center; gap: 10px; color: var(--texto-suave); font-size: 13px; margin: 16px 0 4px; }
+.ou::before, .ou::after { content: ""; flex: 1; height: 1px; background: var(--linha); }
+.btn.google { background: var(--branco); }
+.selo-grande { width: 64px; height: 64px; margin: 4px auto 8px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; background: var(--areia); }
+.selo-grande.recusado { background: #F6D5D5; color: #A33; }
+
+/* cadastros */
+.num.avatar { border-radius: 50%; background: var(--areia); color: var(--vinho); }
+.linha.cadastro { flex-wrap: wrap; }
+.linha.cadastro .acoes { gap: 6px; }
+@media (max-width: 420px) { .linha.cadastro .acoes { width: 100%; justify-content: flex-end; } }
+.aviso.link { text-decoration: none; color: var(--texto); font-weight: 600; }
+.nav a { position: relative; }
+.nav a[data-badge]:not([data-badge=""])::after {
+  content: attr(data-badge); position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; background: var(--vinho); color: var(--areia); font-size: 11px; font-weight: 700; display: grid; place-items: center; opacity: 1;
+}
+.seg { display: inline-flex; border: 1.5px solid var(--tinta); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+.seg button.on { background: var(--preto); color: var(--areia); }
+.linha.cadastro .acoes { flex-wrap: wrap; align-items: center; }
+.esquerda { text-align: left; }
+.btn.google { gap: 10px; border-color: var(--linha); color: var(--texto); }
+
+/* agenda: cultos e ensaios */
+.tipo { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 5px; padding: 1px 6px; vertical-align: 2px; }
+.tipo.culto { background: var(--vinho); color: var(--areia); }
+.tipo.ensaio { background: var(--preto); color: var(--areia); }
+.card-culto.ensaio { background: var(--preto); }
+.card-culto em { display: block; font-style: normal; font-weight: 700; margin-top: 6px; font-size: 14px; }
+.num.data.ensaio { background: var(--preto); }
+.dia.ensaio { background: var(--preto); color: var(--areia); font-weight: 700; }
+.dia .ponto-ensaio { position: absolute; top: auto; right: auto; bottom: 4px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; border-radius: 50%; background: var(--areia); }
+.dia .mic { position: absolute; top: 0; right: 2px; font-size: 10px; font-style: normal; }
+.legenda { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--texto-suave); margin-top: 10px; }
+.legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.q { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.q.culto { background: var(--vinho); }
+.q.ensaio { background: var(--preto); }
+.cartao.obs { margin: 4px 0 12px; font-size: 15px; }
+.aviso.solo { background: var(--areia); border-color: var(--areia-escuro); }
+.aviso.solo.eu { background: #FFF1B8; border-color: #E9C766; }
+.solistas { display: block; color: var(--vinho) !important; font-weight: 600; }
+.solistas.eu { background: #FFF1B8; border-radius: 6px; padding: 0 6px; display: inline-block; }
+.seg.grande { display: flex; margin: 4px 0 8px; }
+.seg.grande button { flex: 1; padding: 10px; font-size: 15px; }
+.evento-hino { align-items: flex-start; flex-wrap: wrap; }
+.evento-hino .info b { white-space: normal; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip.pequeno { padding: 4px 10px; font-size: 13px; }
+.add-solista { font: inherit; font-size: 13px; border: 1.5px dashed var(--areia-escuro); background: var(--branco); border-radius: 999px; padding: 4px 10px; color: var(--vinho); max-width: 100%; }
+
+/* hinos novos */
+.novo { display: inline-block; background: var(--vinho); color: var(--areia); font-size: 10px; font-weight: 800; letter-spacing: .08em; border-radius: 5px; padding: 1px 6px; vertical-align: 2px; }
+.chip.novo-chip { border-color: var(--vinho); color: var(--vinho); font-weight: 700; }
+.chip.novo-chip.on { background: var(--vinho); color: var(--areia); }
+
+/* ---------- temas escolhidos pelo usuário (Conta → Aparência) ---------- */
+/* as cores de cada tema ficam em TEMAS (app.js); aqui só ajustes de forma */
+:root[data-escuro="1"] { color-scheme: dark; }
+:root[data-tema="contraste"] .linha, :root[data-tema="contraste"] .cartao { border-width: 2px; }
+/* texto sempre escuro sobre fundos claros fixos (grifos e avisos) */
+.estrofe.grifada, .aviso { color: #1B1414; }
+.aviso a { color: #600F1E; }
+
+/* tela de aparência */
+.temas { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.tema-op { border: 2px solid var(--linha); border-radius: 12px; padding: 0; overflow: hidden; background: none; text-align: left; }
+.tema-op.on { border-color: var(--tinta); box-shadow: 0 0 0 2px var(--tinta); }
+.tema-op .amostra { display: flex; height: 44px; }
+.tema-op .amostra i { flex: 1; }
+.tema-op b { display: block; padding: 6px 8px; font-size: 13px; background: var(--branco); color: var(--texto); }
+.linha-pref select { font: inherit; padding: 6px 10px; border-radius: 10px; border: 1.5px solid var(--linha); background: var(--branco); color: var(--texto); }
+.previa { border-radius: 12px; padding: 12px; background: var(--areia-claro); border: 1px dashed var(--areia-escuro); }
+.letra .vazio { font-family: Inter, system-ui, sans-serif; }
+.grupo-temas { font-size: 13px; color: var(--texto-suave); margin: 12px 0 6px; font-weight: 600; }
+.grupo-busca { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); margin: 14px 2px 2px; font-weight: 700; }
+
+/* ---------- devocional ---------- */
+.card-devocional {
+  display: block; text-decoration: none; color: var(--texto); background: var(--branco);
+  border: 1px solid var(--linha); border-left: 5px solid var(--vinho); border-radius: var(--raio);
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.card-devocional small { display: block; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--destaque-texto, var(--vinho)); }
+.card-devocional blockquote, .devocional blockquote {
+  margin: 8px 0 4px; font-family: var(--fonte-letra); font-size: 18px; line-height: 1.45; font-style: italic;
+}
+.card-devocional cite, .devocional cite { display: block; font-style: normal; font-weight: 700; font-size: 14px; color: var(--texto-suave); }
+.card-devocional .ler { display: inline-block; margin-top: 10px; font-weight: 700; font-size: 14px; color: var(--destaque-texto, var(--vinho)); }
+a.card-devocional:active { background: var(--areia-claro); }
+.devocional { padding: 4px 0 16px; }
+.devocional blockquote { font-size: 22px; border-left: 4px solid var(--vinho); padding-left: 14px; margin: 8px 0; }
+.devocional cite { padding-left: 18px; margin-bottom: 18px; }
+.devocional .texto { font-family: var(--fonte-letra); font-size: 18px; line-height: 1.65; }
+.devocional .texto p { margin: 0 0 14px; }
+
+/* atalhos da tela inicial */
+.atalhos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 4px 0 8px; }
+.atalho { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--texto); background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; }
+.atalho b { font-size: 22px; color: var(--destaque-texto, var(--vinho)); line-height: 1.1; }
+.atalho span { font-weight: 700; }
+.atalho small { color: var(--texto-suave); font-size: 12px; }
+.atalho:active { background: var(--areia-claro); }

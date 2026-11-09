@@ -1,0 +1,1181 @@
+import { state, onChange, init, api, temAcesso } from './store.js';
+
+// ---------------- utilidades ----------------
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const isoToDate = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+const fmtData = (iso, o = { weekday: 'long', day: 'numeric', month: 'long' }) => isoToDate(iso).toLocaleDateString('pt-BR', o);
+const novoId = () => 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const ordenados = () => [...state.hinos].sort((a, b) => a.numero - b.numero);
+const hinoPorId = (id) => state.hinos.find((h) => h.id === id);
+// "NOVO": hino criado depois que a pessoa entrou e que ela ainda não abriu
+const ehNovo = (h) => !!h.criadoEm && h.criadoEm > (state.perfil.desde || 0) && !(state.perfil.vistos || []).includes(h.id);
+export const ytId = (url) => (String(url || '').match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/) || [])[1] || null;
+
+const pref = {
+  get(k, def) { try { const v = localStorage.getItem('cec-' + k); return v === null ? def : JSON.parse(v); } catch { return def; } },
+  set(k, v) { try { localStorage.setItem('cec-' + k, JSON.stringify(v)); } catch {} },
+};
+
+const CORES = [['#FFF176', 'Amarelo'], ['#A5E8A0', 'Verde'], ['#F8BBD9', 'Rosa'], ['#A7D3F5', 'Azul'], ['#FFCC80', 'Laranja'], ['#D7B8F3', 'Lilás']];
+const PARTES = { todos: 'Todos', solo: 'Solo', masc: 'Solo masculino', fem: 'Solo feminino' };
+
+// ---------------- aparência (cada usuário escolhe) ----------------
+// Cada tema define todas as cores do app (variáveis do styles.css):
+//   preto = cabeçalho, barra de baixo e números · areia = texto sobre o cabeçalho e fundos suaves
+//   fundo = fundo da tela · cartao = listas e caixas · vinho = destaque (botões, títulos)
+const TEMAS = {
+  // ---- claros ----
+  areia:    { nome: 'Areia (padrão)', preto: '#000000', areia: '#ECD3B5', fundo: '#F8EEE2', cartao: '#FFFDF9', linha: '#E3CDB1', suave: '#D9BC98', texto: '#1B1414', textoSuave: '#6B5A4C', vinho: '#600F1E' },
+  claro:    { nome: 'Claro',          preto: '#111111', areia: '#E8E8EA', fundo: '#F4F4F5', cartao: '#FFFFFF', linha: '#E2E2E6', suave: '#CFCFD4', texto: '#18181B', textoSuave: '#63636B', vinho: '#600F1E' },
+  vinho:    { nome: 'Vinho',          preto: '#3A0912', areia: '#F3D9CF', fundo: '#F7ECEA', cartao: '#FFFAF9', linha: '#E8CFCB', suave: '#D7A9A2', texto: '#2A1215', textoSuave: '#7A5550', vinho: '#7D1426' },
+  oceano:   { nome: 'Oceano',         preto: '#0B2545', areia: '#CFE3F3', fundo: '#EEF4FA', cartao: '#FFFFFF', linha: '#D3E1EE', suave: '#A9C3DB', texto: '#0E1B2C', textoSuave: '#4E6178', vinho: '#1D6FA5' },
+  floresta: { nome: 'Floresta',       preto: '#1B3A2B', areia: '#D8E6D3', fundo: '#F1F5EF', cartao: '#FFFFFF', linha: '#D5E0D0', suave: '#AFC7A8', texto: '#14231B', textoSuave: '#56685C', vinho: '#2F6B45' },
+  lavanda:  { nome: 'Lavanda',        preto: '#2E2346', areia: '#E3DAF2', fundo: '#F5F2FA', cartao: '#FFFFFF', linha: '#E1D9EE', suave: '#C2B3DD', texto: '#1F1830', textoSuave: '#665C7A', vinho: '#6B4FA0' },
+  porDoSol: { nome: 'Pôr do sol',     preto: '#3D1F12', areia: '#F9D9C3', fundo: '#FFF4EC', cartao: '#FFFFFF', linha: '#F1D9C7', suave: '#E3B597', texto: '#2B160C', textoSuave: '#7A5847', vinho: '#C2502A' },
+  rosa:     { nome: 'Rosa',           preto: '#3A1328', areia: '#F6D3E2', fundo: '#FCF1F5', cartao: '#FFFFFF', linha: '#F0D5E0', suave: '#E2AFC4', texto: '#2A0F1D', textoSuave: '#7C5468', vinho: '#B0306A' },
+  cafe:     { nome: 'Café',           preto: '#2B1D14', areia: '#E6D3C2', fundo: '#F4EDE6', cartao: '#FFFCF8', linha: '#E3D5C8', suave: '#C9AE95', texto: '#24180F', textoSuave: '#6F5B4B', vinho: '#8A5A3B' },
+  // ---- escuros ----
+  noite:    { nome: 'Noite',          escuro: true, preto: '#000000', areia: '#E9D6BE', fundo: '#121010', cartao: '#1E1A18', linha: '#352D28', suave: '#4A3F36', texto: '#F1E6D9', textoSuave: '#B3A491', vinho: '#C2485A' },
+  grafite:  { nome: 'Grafite',        escuro: true, preto: '#0B0C0E', areia: '#D6E4F0', fundo: '#16181C', cartao: '#22252B', linha: '#33373F', suave: '#454B55', texto: '#E8ECF1', textoSuave: '#9AA3AF', vinho: '#2C72AD' },
+  realeza:  { nome: 'Azul e dourado', escuro: true, preto: '#070D18', areia: '#F0DFAF', fundo: '#0E1726', cartao: '#16233A', linha: '#24344F', suave: '#33476A', texto: '#EEF1F6', textoSuave: '#9FADC4', vinho: '#9A6B12' },
+  // ---- acessibilidade ----
+  contraste:{ nome: 'Alto contraste', preto: '#000000', areia: '#FFE600', fundo: '#FFFFFF', cartao: '#FFFFFF', linha: '#000000', suave: '#000000', texto: '#000000', textoSuave: '#222222', vinho: '#8B0000' },
+};
+const GRUPOS_TEMAS = [['Claros', ['areia', 'claro', 'vinho', 'oceano', 'floresta', 'lavanda', 'porDoSol', 'rosa', 'cafe']], ['Escuros', ['noite', 'grafite', 'realeza']], ['Acessibilidade', ['contraste']]];
+const DESTAQUES = [['#600F1E', 'Vinho'], ['#1E4E8C', 'Azul'], ['#1F6B45', 'Verde'], ['#5B2A86', 'Roxo'], ['#B4501A', 'Laranja'], ['#B0306A', 'Rosa']];
+const FONTES_LETRA = {
+  sans: ['Padrão', 'Inter, system-ui, sans-serif'],
+  serif: ['Serifada', 'Georgia, "Times New Roman", serif'],
+  redonda: ['Arredondada', '"Trebuchet MS", "Segoe UI", system-ui, sans-serif'],
+};
+const APARENCIA_PADRAO = { tema: 'areia', destaque: '', fonteLetra: 'sans' };
+const aparenciaAtual = () => ({ ...APARENCIA_PADRAO, ...pref.get('aparencia', {}) });
+
+function aplicarAparencia(a) {
+  const r = document.documentElement;
+  const t = TEMAS[a.tema] || TEMAS.areia;
+  const vars = {
+    '--preto': t.preto, '--areia': t.areia, '--areia-claro': t.fundo, '--branco': t.cartao, '--linha': t.linha,
+    '--areia-escuro': t.suave, '--texto': t.texto, '--texto-suave': t.textoSuave,
+    '--tinta': t.escuro ? t.texto : '#000000', '--vinho': a.destaque || t.vinho,
+    // destaque usado como COR DE TEXTO: nos temas escuros vira o tom claro do tema, para ler bem
+    '--destaque-texto': t.escuro ? t.areia : (a.destaque || t.vinho),
+  };
+  Object.entries(vars).forEach(([k, v]) => r.style.setProperty(k, v));
+  r.dataset.tema = TEMAS[a.tema] ? a.tema : 'areia';
+  r.dataset.escuro = t.escuro ? '1' : '0';
+  r.style.setProperty('--fonte-letra', (FONTES_LETRA[a.fonteLetra] || FONTES_LETRA.sans)[1]);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', t.preto);
+}
+aplicarAparencia(aparenciaAtual());
+
+async function mudarAparencia(mudanca) {
+  const a = { ...aparenciaAtual(), ...mudanca };
+  pref.set('aparencia', a);
+  aplicarAparencia(a);
+  render(true);
+  if (state.user) { state.perfil.aparencia = a; await api.salvarPerfil(); } // vale em todos os aparelhos
+}
+// quando o perfil chega do servidor (outro aparelho), aplica a aparência salva lá
+function sincronizarAparencia() {
+  const remota = state.perfil?.aparencia;
+  if (!remota) return;
+  if (JSON.stringify({ ...APARENCIA_PADRAO, ...remota }) !== JSON.stringify(aparenciaAtual())) {
+    pref.set('aparencia', remota);
+    aplicarAparencia(aparenciaAtual());
+  }
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+// ---------------- estado da interface ----------------
+const ui = {
+  busca: '',
+  soFavoritos: false,
+  mes: (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })(),
+  rascunho: null, // evento sendo editado
+  sheet: null, // { hinoId, i }
+};
+
+const precisaLogin = () => state.modo === 'online' && !state.user;
+
+// ---------------- roteamento ----------------
+function rota() {
+  const [path, q] = (location.hash.slice(1) || '/').split('?');
+  return { partes: path.split('/').filter(Boolean), params: new URLSearchParams(q || '') };
+}
+
+let telaAtual = '';
+function render(forcar = false) {
+  const { partes, params } = rota();
+  const chave = location.hash;
+  // não redesenha formulários enquanto o Adm digita
+  const f = $('#view').dataset.form;
+  const digitando = $('#view').contains(document.activeElement) && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (!forcar && chave === telaAtual && (f === '1' || (f === 'foco' && digitando))) return;
+  telaAtual = chave;
+
+  let v;
+  const liberado = state.pronto && temAcesso();
+  document.body.classList.toggle('bloqueado', !liberado);
+  if (!state.pronto) v = { html: '<p class="vazio">Carregando…</p>' };
+  else if (!liberado) v = telaPortao();
+  else if (partes[0] === 'cadastros') v = telaCadastros();
+  else if (partes[0] === 'hino' && partes[1]) v = telaHino(partes[1], params);
+  else if (partes[0] === 'agenda') v = telaAgenda();
+  else if (partes[0] === 'dia' && partes[1]) v = telaDia(partes[1]);
+  else if (partes[0] === 'evento' && partes[1]) v = telaEvento(partes[1], params);
+  else if (partes[0] === 'conta') v = telaConta();
+  else if (partes[0] === 'editar' && partes[1]) v = telaEditarHino(partes[1]);
+  else if (partes[0] === 'ordem') v = telaOrdem();
+  else if (partes[0] === 'aparencia') v = telaAparencia();
+  else if (partes[0] === 'hinos') v = telaHinos();
+  else if (partes[0] === 'devocionais' && partes[1]) v = telaEditarDevocional(partes[1]);
+  else if (partes[0] === 'devocionais') v = telaDevocionais();
+  else if (partes[0] === 'devocional' && partes[1]) v = telaDevocional(partes[1]);
+  else v = telaInicio();
+
+  const view = $('#view');
+  const scroll = window.scrollY;
+  view.dataset.form = v.form === true ? '1' : (v.form || '0');
+  view.innerHTML = (state.erro ? `<div class="aviso">${esc(state.erro)}</div>` : '') + v.html;
+  if (v.depois) v.depois();
+  if (!forcar) window.scrollTo(0, scroll);
+
+  const pend = state.isAdmin ? state.usuarios.filter((x) => x.status === 'pendente').length : 0;
+  $('.nav [data-nav=conta]').dataset.badge = pend || '';
+  const secao = { hino: 'hinos', editar: 'hinos', ordem: 'hinos', dia: 'agenda', evento: 'agenda', cadastros: 'conta', aparencia: 'conta', devocional: 'inicio', devocionais: 'inicio' }[partes[0]] || partes[0] || 'inicio';
+  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('ativo', a.dataset.nav === secao));
+  manterTelaAcesa(partes[0] === 'hino');
+  renderSheet();
+}
+
+// ---------------- tela inicial: busca + lista ----------------
+function linhaHino(h, extra = '') {
+  const temLetra = h.estrofes?.length > 0;
+  const temAudio = ytId(h.videoVoz) || ytId(h.videoPlayback);
+  const fav = state.perfil.favoritos?.includes(h.id);
+  return `<a class="linha" href="#/hino/${h.id}${extra}">
+    <span class="num">${pad(h.numero)}</span>
+    <span class="info"><b>${esc(h.titulo)}${ehNovo(h) ? ' <span class="novo">NOVO</span>' : ''}</b><small>${esc(h.cantor)}</small></span>
+    <span class="icones">${fav ? '<i title="Favorito">★</i>' : ''}${temLetra ? '' : '<i class="falta" title="Letra ainda não cadastrada">sem letra</i>'}${temAudio ? '<i title="Áudio disponível">♪</i>' : ''}</span>
+  </a>`;
+}
+
+// texto só com letras, números e espaços simples (para comparar sem acento nem pontuação)
+const limpo = (s) => norm(s).replace(/[^a-z0-9]+/g, ' ').trim();
+const palavras = (s) => limpo(s).split(' ').filter(Boolean);
+
+// Quão bem o hino combina com a busca (0 = não combina; menor = melhor):
+//   1 título começa com o que foi digitado · 2 título tem palavras que começam assim
+//   3 cantor (ou título + cantor) · 4 trecho exato da letra (a partir de 3 letras)
+function pontuar(h, q) {
+  const termos = palavras(q);
+  if (!termos.length) return 0;
+  const titulo = limpo(h.titulo);
+  const ptTitulo = palavras(h.titulo);
+  const ptTudo = [...ptTitulo, ...palavras(h.cantor)];
+  const todosComecam = (lista) => termos.every((t) => lista.some((p) => p.startsWith(t)));
+  if (titulo.startsWith(termos.join(' '))) return 1;
+  if (todosComecam(ptTitulo)) return 2;
+  if (todosComecam(ptTudo)) return 3;
+  const trecho = termos.join(' ');
+  if (trecho.length >= 3 && limpo((h.estrofes || []).map((e) => e.texto).join(' ')).includes(trecho)) return 4;
+  return 0;
+}
+
+// devolve [{ h, naLetra }]: naLetra = achado só por um trecho da letra
+function listaFiltrada() {
+  const q = ui.busca.trim();
+  const base = ordenados().filter((h) => {
+    if (ui.soFavoritos && !state.perfil.favoritos?.includes(h.id)) return false;
+    if (ui.soNovos && !ehNovo(h)) return false;
+    return true;
+  });
+  if (!q) return base.map((h) => ({ h }));
+  if (/^\d+$/.test(q)) return base.filter((h) => String(h.numero).startsWith(String(Number(q)))).map((h) => ({ h }));
+  return base
+    .map((h) => ({ h, p: pontuar(h, q) }))
+    .filter((x) => x.p > 0)
+    .sort((a, b) => a.p - b.p || a.h.numero - b.h.numero)
+    .map((x) => ({ h: x.h, naLetra: x.p === 4 }));
+}
+
+function htmlLista() {
+  const l = listaFiltrada();
+  if (!l.length) return `<p class="vazio">${ui.soFavoritos && !ui.busca ? 'Você ainda não tem favoritos. Toque na ☆ de um hino para salvar aqui.' : 'Nenhum hino encontrado.'}</p>`;
+  const i = l.findIndex((x) => x.naLetra);
+  return l.map((x, k) => (k === i ? '<p class="grupo-busca">Encontrados na letra</p>' : '') + linhaHino(x.h)).join('');
+}
+
+// ---------------- devocionais ----------------
+const devocionaisPublicados = () => state.devocionais.filter((d) => d.data <= hojeISO()).sort((a, b) => b.data.localeCompare(a.data) || (b.criadoEm || 0) - (a.criadoEm || 0));
+const devocionalPorId = (id) => state.devocionais.find((d) => d.id === id);
+const paragrafos = (t) => esc(t).split(/\n\s*\n/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+
+// devocional NOVO: tem texto para abrir, foi publicado depois que a pessoa entrou e ela nunca abriu
+const devNovo = (d) => !!d.texto && ehNovo(d) && d.autorUid !== state.user?.uid; // quem publicou não vê o selo
+const seloNovo = '<span class="novo">NOVO</span>';
+
+function cardDevocional(d) {
+  const hoje = d.data === hojeISO();
+  const corpo = `
+      <small>${hoje ? 'Palavra de hoje' : `Palavra · ${esc(fmtData(d.data, { day: 'numeric', month: 'long' }))}`}${devNovo(d) ? ` ${seloNovo}` : ''}</small>
+      <blockquote>“${esc(d.versiculo)}”</blockquote>
+      ${d.referencia ? `<cite>${esc(d.referencia)}</cite>` : ''}
+      ${d.texto ? '<span class="ler">Ler devocional →</span>' : ''}`;
+  // só vira link se tiver devocional para abrir
+  return d.texto
+    ? `<a class="card-devocional" href="#/devocional/${d.id}">${corpo}</a>`
+    : `<div class="card-devocional">${corpo}</div>`;
+}
+
+// ---------------- tela inicial: painel ----------------
+function telaInicio() {
+  const pc = proximosEventos('culto')[0];
+  const pe = proximosEventos('ensaio')[0];
+  const card = [pc && cardEvento(pc, 'Próximo culto'), pe && cardEvento(pe, 'Próximo ensaio')]
+    .filter(Boolean).sort().join('');
+  const dev = devocionaisPublicados()[0];
+  const novos = state.hinos.filter(ehNovo).length;
+  return {
+    html: `
+    <header class="topo">
+      <img src="img/logo.png" alt="Conectados em Cristo" class="logo">
+      <div><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>
+    </header>
+    ${state.isAdmin && state.usuarios.some((u) => u.status === 'pendente') ? `<a class="aviso link" href="#/cadastros">👤 ${state.usuarios.filter((u) => u.status === 'pendente').length} cadastro(s) aguardando sua aprovação →</a>` : ''}
+    ${dev ? cardDevocional(dev) : (state.isAdmin ? '<a class="aviso link" href="#/devocionais/novo">📖 Nenhum devocional publicado ainda. Publicar o primeiro →</a>' : '')}
+    ${card}
+    <div class="atalhos">
+      <a class="atalho" href="#/hinos"><b>♫</b><span>Hinos</span><small>${state.hinos.length} no repertório</small></a>
+      <a class="atalho" href="#/agenda"><b>▦</b><span>Agenda</span><small>Cultos e ensaios</small></a>
+      ${novos ? `<a class="atalho" href="#/hinos" data-act="irNovos"><b>✦</b><span>Novos</span><small>${novos} ${novos === 1 ? 'hino novo' : 'hinos novos'}</small></a>` : ''}
+      ${state.perfil.favoritos?.length ? `<a class="atalho" href="#/hinos" data-act="irFavoritos"><b>★</b><span>Favoritos</span><small>${state.perfil.favoritos.length} salvos</small></a>` : ''}
+    </div>
+    ${devocionaisPublicados().length > 1 ? '<a class="btn-link" href="#/devocionais">Ver devocionais anteriores</a>' : ''}`,
+  };
+}
+
+// ---------------- hinos: busca + lista ----------------
+function telaHinos() {
+  return {
+    html: `
+    <h2 class="secao">Hinos</h2>
+    <div class="busca">
+      <input id="busca" type="search" placeholder="Buscar por nome, número, cantor ou trecho" value="${esc(ui.busca)}" autocomplete="off">
+    </div>
+    <div class="filtros">
+      <button class="chip ${ui.soFavoritos || ui.soNovos ? '' : 'on'}" data-act="filtro" data-v="0">Todos (${state.hinos.length})</button>
+      ${state.hinos.some(ehNovo) ? `<button class="chip novo-chip ${ui.soNovos ? 'on' : ''}" data-act="filtro" data-v="2">Novos (${state.hinos.filter(ehNovo).length})</button>` : ''}
+      <button class="chip ${ui.soFavoritos ? 'on' : ''}" data-act="filtro" data-v="1">★ Favoritos (${state.perfil.favoritos?.length || 0})</button>
+      ${state.isAdmin ? '<a class="chip adm" href="#/editar/novo">+ Novo hino</a>' : ''}
+    </div>
+    <div id="lista" class="lista">${htmlLista()}</div>`,
+    depois() {
+      $('#busca').addEventListener('input', (e) => { ui.busca = e.target.value; $('#lista').innerHTML = htmlLista(); });
+    },
+  };
+}
+
+function telaDevocional(id) {
+  const d = devocionalPorId(id);
+  if (!d || (d.data > hojeISO() && !state.isAdmin)) return { html: '<p class="vazio">Devocional não encontrado. <a href="#/">Voltar</a></p>' };
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>Devocional</h2><small>${esc(fmtData(d.data))}</small></div></div>
+      ${state.isAdmin ? `<a class="btn pequeno" href="#/devocionais/${d.id}">Editar</a>` : ''}</div>
+    <article class="devocional">
+      <blockquote>“${esc(d.versiculo)}”</blockquote>
+      ${d.referencia ? `<cite>${esc(d.referencia)}</cite>` : ''}
+      ${d.texto ? `<div class="texto">${paragrafos(d.texto)}</div>` : ''}
+      ${d.autor ? `<p class="dica">Publicado por ${esc(d.autor)}</p>` : ''}
+    </article>
+    ${devocionaisPublicados().length > 1 ? '<a class="btn-link" href="#/devocionais">Ver devocionais anteriores</a>' : ''}`,
+    depois() {
+      if (devNovo(d)) { // abriu pela primeira vez: tira o selo NOVO
+        state.perfil.vistos = [...(state.perfil.vistos || []), d.id];
+        api.salvarPerfil();
+      }
+    },
+  };
+}
+
+function telaDevocionais() {
+  const lista = state.isAdmin
+    ? [...state.devocionais].sort((a, b) => b.data.localeCompare(a.data))
+    : devocionaisPublicados();
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>Devocionais</h2><small>${state.isAdmin ? 'Publique e organize os devocionais' : 'Palavras anteriores'}</small></div></div></div>
+    ${state.isAdmin ? '<a class="btn primario largo" href="#/devocionais/novo" style="margin:0 0 12px">📖 Publicar devocional</a>' : ''}
+    <div class="lista">${lista.length ? lista.map((d) => `<a class="linha" href="${state.isAdmin ? `#/devocionais/${d.id}` : `#/devocional/${d.id}`}">
+        <span class="num data">${isoToDate(d.data).getDate()}<small>${fmtData(d.data, { month: 'short' }).replace('.', '')}</small></span>
+        <span class="info"><b>${esc(d.referencia || d.versiculo)}${devNovo(d) ? ` ${seloNovo}` : ''}</b><small>${d.data > hojeISO() ? '⏰ agendado · ' : ''}${esc(d.versiculo)}</small></span>
+      </a>`).join('') : '<p class="vazio">Nenhum devocional ainda.</p>'}</div>`,
+  };
+}
+
+function telaEditarDevocional(id) {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só admins publicam devocionais.</p>' };
+  const novo = id === 'novo';
+  const d = novo ? { id: 'd' + Date.now().toString(36), data: hojeISO(), referencia: '', versiculo: '', texto: '' } : devocionalPorId(id);
+  if (!d) return { html: '<p class="vazio">Devocional não encontrado.</p>' };
+  return {
+    form: true,
+    html: `
+    <div class="hino-topo"><a href="#/devocionais" class="voltar" aria-label="Voltar">←</a><div class="titulo"><div><h2>${novo ? 'Publicar devocional' : 'Editar devocional'}</h2></div></div></div>
+    <form id="form-dev" class="form">
+      <label class="campo">Data <small>Pode agendar para um dia futuro: ele aparece sozinho nesse dia.</small>
+        <input name="data" type="date" required value="${esc(d.data)}"></label>
+      <label class="campo">Referência <small>Ex.: João 3:16</small><input name="referencia" value="${esc(d.referencia)}"></label>
+      <label class="campo">Versículo<textarea name="versiculo" rows="4" required placeholder="Texto do versículo">${esc(d.versiculo)}</textarea></label>
+      <label class="campo">Devocional <small>Opcional. Separe os parágrafos com uma linha em branco.</small>
+        <textarea name="texto" rows="12" placeholder="Reflexão sobre o versículo…">${esc(d.texto)}</textarea></label>
+      <div class="botoes">
+        <button class="btn primario" type="submit">${novo ? 'Publicar' : 'Salvar'}</button>
+        ${novo ? '' : `<button class="btn perigo" type="button" data-act="excluirDevocional" data-id="${d.id}">Excluir</button>`}
+      </div>
+    </form>`,
+    depois() {
+      $('#form-dev').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        const salvo = {
+          ...d, data: f.data, referencia: f.referencia.trim(), versiculo: f.versiculo.trim(), texto: f.texto.trim(),
+          autor: d.autor || state.user?.nome || '', autorUid: d.autorUid || state.user?.uid || '', criadoEm: d.criadoEm || Date.now(),
+        };
+        if (!salvo.versiculo) { toast('Escreva o versículo.'); return; }
+        await api.salvarDevocional(salvo);
+        toast(salvo.data > hojeISO() ? 'Devocional agendado.' : 'Devocional publicado.');
+        location.hash = '#/devocionais';
+      });
+    },
+  };
+}
+
+// ---------------- tela do hino ----------------
+function telaHino(id, params) {
+  const h = hinoPorId(id);
+  if (!h) return { html: '<p class="vazio">Hino não encontrado. <a href="#/hinos">Voltar</a></p>' };
+  const fonte = pref.get('fonte', 20);
+  const verMeus = pref.get('verMeus', true);
+  const meus = state.perfil.grifos?.[id] || {};
+  const padrao = h.grifosPadrao || {};
+  const fav = state.perfil.favoritos?.includes(id);
+
+  // navegação dentro do culto/ensaio
+  let navCulto = '';
+  let soloAqui = '';
+  const culto = params.get('ev') && eventoPorId(params.get('ev'));
+  if (culto) {
+    const itens = culto.hinos.filter((x) => hinoPorId(x.id));
+    const lista = itens.map((x) => x.id);
+    const i = lista.indexOf(id);
+    const link = (j) => `#/hino/${lista[j]}?ev=${culto.id}`;
+    navCulto = `<div class="nav-culto">
+      ${i > 0 ? `<a href="${link(i - 1)}">◀ Anterior</a>` : '<span></span>'}
+      <a href="#/evento/${culto.id}" class="meio">${esc(tituloEv(culto))} · ${i + 1} de ${lista.length}</a>
+      ${i < lista.length - 1 ? `<a href="${link(i + 1)}">Próximo ▶</a>` : '<span></span>'}
+    </div>`;
+    const item = itens[i];
+    if (item && (item.solistas || []).length) {
+      soloAqui = `<div class="aviso solo ${souSolista(item) ? 'eu' : ''}">🎤 Solo neste ${culto.tipo === 'ensaio' ? 'ensaio' : 'culto'}: <b>${esc(nomesSolistas(item))}</b></div>`;
+    }
+  }
+
+  const botaoAudio = (tipo, rotulo) => {
+    const url = tipo === 'voz' ? h.videoVoz : h.videoPlayback;
+    const busca = tipo === 'voz' ? h.buscaVoz : h.buscaPlayback;
+    if (ytId(url)) return `<button class="btn audio" data-act="tocar" data-tipo="${tipo}">▶ ${rotulo}</button>`;
+    if (busca) return `<a class="btn audio fraco" href="${esc(busca)}" target="_blank" rel="noopener" title="Ainda não há vídeo escolhido; abre a busca no YouTube">🔎 ${rotulo}</a>`;
+    return '';
+  };
+
+  const estrofes = (h.estrofes || []).map((e, i) => {
+    const cor = (verMeus && meus[i]) || padrao[i] || '';
+    const parte = e.parte && PARTES[e.parte] ? `<span class="parte ${e.parte}">${PARTES[e.parte]}</span>` : '';
+    return `<div class="estrofe ${cor ? 'grifada' : ''}" data-act="estrofe" data-i="${i}" style="${cor ? `--grifo:${esc(cor)}` : ''}">
+      ${parte}<p>${esc(e.texto).replace(/\n/g, '<br>')}</p></div>`;
+  }).join('');
+
+  const semLetra = `<div class="vazio">
+      <p>A letra deste hino ainda não foi cadastrada.</p>
+      ${h.buscaLetra ? `<a class="btn" href="${esc(h.buscaLetra)}" target="_blank" rel="noopener">Ver letra na internet ↗</a>` : ''}
+      ${state.isAdmin ? `<a class="btn primario" href="#/editar/${h.id}">Cadastrar letra</a>` : ''}
+    </div>`;
+
+  return {
+    html: `
+    ${navCulto}
+    <div class="hino-topo">
+      <a href="${culto ? `#/evento/${culto.id}` : '#/hinos'}" class="voltar" aria-label="Voltar">←</a>
+      <div class="titulo"><span class="num">${pad(h.numero)}</span><div><h2>${esc(h.titulo)}</h2><small>${esc(h.cantor)}</small></div></div>
+      <button class="icone ${fav ? 'on' : ''}" data-act="fav" aria-label="Favorito">${fav ? '★' : '☆'}</button>
+    </div>
+    <div class="ferramentas">
+      <div class="grupo">${botaoAudio('voz', 'Voz')}${botaoAudio('playback', 'Playback')}</div>
+      <div class="grupo">
+        <button class="icone" data-act="fonte" data-d="-2" aria-label="Diminuir letra">A−</button>
+        <span class="tam">${fonte}</span>
+        <button class="icone" data-act="fonte" data-d="2" aria-label="Aumentar letra">A+</button>
+      </div>
+    </div>
+    <div class="ferramentas sub">
+      <label class="check"><input type="checkbox" data-act="verMeus" ${verMeus ? 'checked' : ''}> Mostrar meus grifos</label>
+      <span id="tela-acesa" class="tela-acesa" hidden>☀ Tela acesa</span>
+      ${state.isAdmin ? `<a class="link-adm" href="#/editar/${h.id}">Editar hino</a>` : ''}
+    </div>
+    ${soloAqui}
+    ${h.estrofes?.length ? `<p class="dica">Toque numa estrofe para grifar${state.isAdmin ? ' ou marcar quem canta' : ''}.</p>` : ''}
+    <article class="letra" style="--fonte:${fonte}px">${h.estrofes?.length ? estrofes : semLetra}</article>`,
+    depois() {
+      atualizarTelaAcesa();
+      if (ehNovo(h)) { // abriu pela primeira vez: tira o selo NOVO
+        state.perfil.vistos = [...(state.perfil.vistos || []), h.id];
+        api.salvarPerfil();
+      }
+    },
+  };
+}
+
+// ---------------- folha de grifo (bottom sheet) ----------------
+function renderSheet() {
+  const el = $('#sheet');
+  const s = ui.sheet;
+  const h = s && hinoPorId(s.hinoId);
+  if (!h || !h.estrofes?.[s.i] || rota().partes[1] !== s.hinoId) { el.hidden = true; el.innerHTML = ''; ui.sheet = null; return; }
+  const meu = state.perfil.grifos?.[h.id]?.[s.i] || '';
+  const pad_ = h.grifosPadrao?.[s.i] || '';
+  const parte = h.estrofes[s.i].parte || '';
+  const paleta = (alvo, atual) => CORES.map(([c, n]) =>
+    `<button class="cor ${atual === c ? 'on' : ''}" style="background:${c}" title="${n}" data-act="grifar" data-alvo="${alvo}" data-cor="${c}"></button>`).join('')
+    + `<label class="cor livre" title="Escolher outra cor"><input type="color" data-act="corLivre" data-alvo="${alvo}" value="${atual && atual.startsWith('#') ? atual : '#ffd54f'}">+</label>`
+    + `<button class="cor limpar" data-act="grifar" data-alvo="${alvo}" data-cor="" title="Sem grifo">✕</button>`;
+
+  el.hidden = false;
+  el.innerHTML = `<div class="fundo" data-act="fecharSheet"></div>
+    <div class="painel">
+      <div class="trecho">${esc(h.estrofes[s.i].texto.split('\n')[0])}…</div>
+      ${precisaLogin()
+        ? `<p>Entre com sua conta Google para grifar suas estrofes.</p><button class="btn primario" data-act="login">Entrar com Google</button>`
+        : `<h4>Meu grifo <small>só você vê</small></h4><div class="cores">${paleta('meu', meu)}</div>`}
+      ${state.isAdmin ? `
+        <h4>Grifo padrão <small>todos veem</small></h4><div class="cores">${paleta('padrao', pad_)}</div>
+        <h4>Quem canta</h4>
+        <div class="partes">
+          ${Object.entries(PARTES).map(([k, n]) => `<button class="chip ${parte === k ? 'on' : ''}" data-act="parte" data-v="${k}">${n}</button>`).join('')}
+          <button class="chip ${parte ? '' : 'on'}" data-act="parte" data-v="">Nenhum</button>
+        </div>` : ''}
+      <button class="btn fechar" data-act="fecharSheet">Pronto</button>
+    </div>`;
+}
+
+async function aplicarGrifo(alvo, cor) {
+  const { hinoId, i } = ui.sheet;
+  const h = hinoPorId(hinoId);
+  if (alvo === 'padrao') {
+    const g = { ...(h.grifosPadrao || {}) };
+    if (cor) g[i] = cor; else delete g[i];
+    await api.salvarHino({ ...h, grifosPadrao: g });
+  } else {
+    const grifos = state.perfil.grifos || (state.perfil.grifos = {});
+    const g = grifos[hinoId] || (grifos[hinoId] = {});
+    if (cor) g[i] = cor; else delete g[i];
+    if (!Object.keys(g).length) delete grifos[hinoId];
+    if (cor && !pref.get('verMeus', true)) pref.set('verMeus', true);
+    await api.salvarPerfil();
+  }
+}
+
+// ---------------- player de áudio (YouTube, só o som) ----------------
+let yt = null;
+let ytPronto = null;
+const tocando = { hinoId: null, tipo: null, titulo: '' };
+
+function carregarYT() {
+  if (ytPronto) return ytPronto;
+  ytPronto = new Promise((res, rej) => {
+    window.onYouTubeIframeAPIReady = res;
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = () => { ytPronto = null; rej(new Error('yt')); };
+    document.head.append(s);
+  });
+  return ytPronto;
+}
+
+async function tocar(h, tipo) {
+  const vid = ytId(tipo === 'voz' ? h.videoVoz : h.videoPlayback);
+  if (!vid) return;
+  Object.assign(tocando, { hinoId: h.id, tipo, titulo: `${pad(h.numero)} ${h.titulo}` });
+  $('#player').hidden = false;
+  $('#player-titulo').textContent = `${tipo === 'voz' ? 'Voz' : 'Playback'} · ${tocando.titulo}`;
+  $('#player-tempo').textContent = 'carregando…';
+  document.body.classList.add('com-player');
+  try { await carregarYT(); } catch { toast('Sem conexão com o YouTube.'); fecharPlayer(); return; }
+  if (!yt) {
+    yt = new YT.Player('yt', {
+      width: '96', height: '54', videoId: vid,
+      playerVars: { autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: (e) => e.target.playVideo(),
+        onStateChange: atualizarPlayer,
+        onError: () => toast('Este vídeo não pode ser tocado aqui. Peça ao Adm para trocar o link.'),
+      },
+    });
+  } else {
+    yt.loadVideoById(vid);
+  }
+}
+
+function fmtTempo(s) { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${pad(s % 60)}`; }
+function atualizarPlayer() {
+  if (!yt || !yt.getPlayerState || $('#player').hidden) return;
+  const st = yt.getPlayerState();
+  $('#player-play').textContent = st === 1 || st === 3 ? '❚❚' : '▶';
+  const dur = yt.getDuration?.() || 0;
+  const cur = yt.getCurrentTime?.() || 0;
+  $('#player-tempo').textContent = dur ? `${fmtTempo(cur)} / ${fmtTempo(dur)}` : (st === 3 ? 'carregando…' : '');
+  $('#player-barra').style.width = dur ? `${(cur / dur) * 100}%` : '0';
+}
+setInterval(atualizarPlayer, 500);
+
+function fecharPlayer() {
+  try { yt?.stopVideo(); } catch {}
+  $('#player').hidden = true;
+  document.body.classList.remove('com-player');
+}
+
+// ---------------- manter a tela acesa ----------------
+let wakeLock = null;
+let querTelaAcesa = false;
+async function manterTelaAcesa(on) {
+  querTelaAcesa = on;
+  try {
+    if (on && !wakeLock && 'wakeLock' in navigator && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; atualizarTelaAcesa(); });
+    } else if (!on && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {}
+  atualizarTelaAcesa();
+}
+function atualizarTelaAcesa() { const el = $('#tela-acesa'); if (el) el.hidden = !wakeLock; }
+document.addEventListener('visibilitychange', () => { if (querTelaAcesa) manterTelaAcesa(true); });
+
+// ---------------- agenda: cultos e ensaios ----------------
+const TIPOS = { culto: 'Culto', ensaio: 'Ensaio' };
+const ordemEv = (a, b) => a.data.localeCompare(b.data) || (a.hora || '').localeCompare(b.hora || '');
+const eventoPorId = (id) => state.eventos.find((e) => e.id === id);
+const eventosDoDia = (d) => state.eventos.filter((e) => e.data === d).sort(ordemEv);
+const proximosEventos = (tipo) => state.eventos.filter((e) => e.data >= hojeISO() && (!tipo || e.tipo === tipo)).sort(ordemEv);
+const tituloEv = (e) => e.titulo || TIPOS[e.tipo] || 'Evento';
+const quandoEv = (e) => `${fmtData(e.data)}${e.hora ? ` · ${e.hora}` : ''}`;
+const souSolista = (x) => (x.solistas || []).some((s) => s.uid === state.user?.uid);
+const meusSolos = (e) => (e.hinos || []).filter((x) => souSolista(x) && hinoPorId(x.id));
+const nomesSolistas = (x) => (x.solistas || []).map((s) => (s.uid === state.user?.uid ? 'você' : s.nome)).join(', ');
+const seloTipo = (e) => `<span class="tipo ${e.tipo}">${TIPOS[e.tipo] || 'Evento'}</span>`;
+
+function cardEvento(e, rotulo) {
+  const solos = meusSolos(e);
+  return `<a class="card-culto ${e.tipo}" href="#/evento/${e.id}">
+      <small>${e.data === hojeISO() ? 'Hoje' : rotulo}</small>
+      <b>${esc(tituloEv(e))}</b>
+      <span>${esc(quandoEv(e))} · ${e.hinos.length} ${e.hinos.length === 1 ? 'hino' : 'hinos'}</span>
+      ${solos.length ? `<em>🎤 Você faz solo em ${solos.length} ${solos.length === 1 ? 'hino' : 'hinos'}</em>` : ''}
+    </a>`;
+}
+
+function linhaEvento(e) {
+  const d = isoToDate(e.data);
+  const solos = meusSolos(e).length;
+  return `<a class="linha" href="#/evento/${e.id}">
+    <span class="num data ${e.tipo}">${d.getDate()}<small>${fmtData(e.data, { month: 'short' }).replace('.', '')}</small></span>
+    <span class="info"><b>${seloTipo(e)} ${esc(tituloEv(e))}</b><small>${esc(quandoEv(e))} · ${e.hinos.length} ${e.hinos.length === 1 ? 'hino' : 'hinos'}${solos ? ' · 🎤 seu solo' : ''}</small></span>
+  </a>`;
+}
+
+function telaAgenda() {
+  const m = ui.mes;
+  const ano = m.getFullYear();
+  const mes = m.getMonth();
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const hoje = hojeISO();
+  let cel = '';
+  for (let i = 0; i < primeiroDia; i++) cel += '<span></span>';
+  for (let d = 1; d <= diasNoMes; d++) {
+    const iso = `${ano}-${pad(mes + 1)}-${pad(d)}`;
+    const evs = eventosDoDia(iso);
+    const temCulto = evs.some((e) => e.tipo === 'culto');
+    const temEnsaio = evs.some((e) => e.tipo === 'ensaio');
+    const solo = evs.some((e) => meusSolos(e).length);
+    cel += `<button class="dia ${temCulto ? 'culto' : temEnsaio ? 'ensaio' : ''} ${iso === hoje ? 'hoje' : ''}" data-act="dia" data-d="${iso}">
+      ${d}${temCulto && temEnsaio ? '<i class="ponto-ensaio"></i>' : ''}${solo ? '<i class="mic">🎤</i>' : ''}</button>`;
+  }
+  const prox = proximosEventos();
+  const titulo = m.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return {
+    html: `
+    <h2 class="secao">Agenda</h2>
+    <div class="cal">
+      <div class="cal-topo">
+        <button class="icone" data-act="mes" data-d="-1" aria-label="Mês anterior">‹</button>
+        <b>${titulo[0].toUpperCase() + titulo.slice(1)}</b>
+        <button class="icone" data-act="mes" data-d="1" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="cal-grade">${['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((x) => `<small>${x}</small>`).join('')}${cel}</div>
+      <div class="legenda"><span><i class="q culto"></i>Culto</span><span><i class="q ensaio"></i>Ensaio</span><span>🎤 Seu solo</span></div>
+    </div>
+    <p class="dica">${state.isAdmin ? 'Toque num dia para marcar um culto ou ensaio, escolher os hinos e quem faz o solo.' : 'Toque num dia marcado para ver os hinos.'}</p>
+    <h3 class="secao">Próximos</h3>
+    <div class="lista">${prox.length ? prox.map(linhaEvento).join('') : '<p class="vazio">Nada marcado.</p>'}</div>`,
+  };
+}
+
+function telaDia(iso) {
+  const evs = eventosDoDia(iso);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/agenda" class="voltar">←</a><div class="titulo"><div><h2>${esc(fmtData(iso, { weekday: 'long' }))}</h2><small>${esc(fmtData(iso, { day: 'numeric', month: 'long', year: 'numeric' }))}</small></div></div></div>
+    <div class="lista">${evs.length ? evs.map(linhaEvento).join('') : '<p class="vazio">Nada marcado neste dia.</p>'}</div>
+    ${state.isAdmin ? `<div class="botoes">
+      <a class="btn primario" href="#/evento/novo?data=${iso}&tipo=culto">+ Marcar culto</a>
+      <a class="btn" href="#/evento/novo?data=${iso}&tipo=ensaio">+ Marcar ensaio</a></div>` : ''}`,
+  };
+}
+
+function telaEvento(id, params) {
+  const e = id === 'novo' ? null : eventoPorId(id);
+  const editar = state.isAdmin && (id === 'novo' || params.get('editar') === '1');
+  if (!e && !editar) return { html: '<p class="vazio">Evento não encontrado. <a href="#/agenda">Voltar</a></p>' };
+  if (editar) return telaEditarEvento(e, params);
+
+  const lista = e.hinos.filter((x) => hinoPorId(x.id));
+  const solos = meusSolos(e);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/dia/${e.data}" class="voltar">←</a><div class="titulo"><div><h2>${esc(tituloEv(e))}</h2><small>${seloTipo(e)} ${esc(quandoEv(e))}</small></div></div>
+      ${state.isAdmin ? `<a class="btn pequeno" href="#/evento/${e.id}?editar=1">Editar</a>` : ''}</div>
+    ${e.obs ? `<div class="cartao obs">${esc(e.obs).replace(/\n/g, '<br>')}</div>` : ''}
+    ${solos.length ? `<div class="aviso solo">🎤 <b>Você faz solo em:</b> ${solos.map((x) => esc(hinoPorId(x.id).titulo)).join(', ')}</div>` : ''}
+    <div class="lista">${lista.length ? lista.map((x, i) => {
+      const h = hinoPorId(x.id);
+      const sol = (x.solistas || []).length ? `<small class="solistas ${souSolista(x) ? 'eu' : ''}">🎤 Solo: ${esc(nomesSolistas(x))}</small>` : '';
+      return `<a class="linha" href="#/hino/${h.id}?ev=${e.id}">
+        <span class="num ordem-n">${i + 1}º<small>nº ${pad(h.numero)}</small></span>
+        <span class="info"><b>${esc(h.titulo)}${ehNovo(h) ? ' <span class="novo">NOVO</span>' : ''}</b><small>${esc(h.cantor)}</small>${sol}</span>
+      </a>`;
+    }).join('') : '<p class="vazio">Nenhum hino escolhido ainda.</p>'}</div>
+    ${lista.length ? `<a class="btn primario largo" href="#/hino/${lista[0].id}?ev=${e.id}">${e.tipo === 'ensaio' ? 'Começar o ensaio' : 'Começar pelo 1º hino'}</a>` : ''}`,
+  };
+}
+
+function telaEditarEvento(e, params) {
+  const chave = e ? e.id : `novo:${params.get('data')}:${params.get('tipo')}`;
+  if (!ui.rascunho || ui.rascunho._chave !== chave) {
+    ui.rascunho = e
+      ? { ...JSON.parse(JSON.stringify(e)), _chave: chave }
+      : { _chave: chave, id: 'e' + Date.now().toString(36), data: params.get('data') || hojeISO(), tipo: params.get('tipo') === 'ensaio' ? 'ensaio' : 'culto', hora: '', titulo: '', obs: '', hinos: [] };
+    ui.cBusca = '';
+  }
+  const r = ui.rascunho;
+  const aprovados = state.usuarios.filter((u) => u.status === 'aprovado').sort((a, b) => a.nome.localeCompare(b.nome));
+  const sugestao = r.tipo === 'ensaio' ? 'Ensaio' : (isoToDate(r.data).getDay() === 0 ? 'Culto de domingo' : 'Culto');
+  return {
+    form: true,
+    html: `
+    <div class="hino-topo"><a href="${e ? `#/evento/${e.id}` : `#/dia/${r.data}`}" class="voltar" data-act="rCancelar">←</a><div class="titulo"><div><h2>${e ? 'Editar' : 'Marcar'} ${TIPOS[r.tipo].toLowerCase()}</h2></div></div></div>
+    <div class="seg grande">
+      <button class="${r.tipo === 'culto' ? 'on' : ''}" data-act="rTipo" data-v="culto">Culto</button>
+      <button class="${r.tipo === 'ensaio' ? 'on' : ''}" data-act="rTipo" data-v="ensaio">Ensaio</button>
+    </div>
+    <div class="duas"><label class="campo">Data<input id="r-data" type="date" value="${r.data}" required></label>
+    <label class="campo curto">Horário<input id="r-hora" type="time" value="${esc(r.hora)}"></label></div>
+    <label class="campo">Nome <small>opcional</small><input id="r-titulo" value="${esc(r.titulo)}" placeholder="${sugestao}"></label>
+    <label class="campo">Observação <small>opcional (ex.: local, roupa, chegar mais cedo)</small><textarea id="r-obs" rows="2">${esc(r.obs)}</textarea></label>
+
+    <h3 class="secao">Hinos (${r.hinos.length})</h3>
+    <div class="lista ordem">${r.hinos.map((x, i) => {
+      const h = hinoPorId(x.id);
+      const ja = new Set((x.solistas || []).map((s) => s.uid));
+      return `<div class="linha evento-hino">
+        <span class="num">${i + 1}º</span>
+        <span class="info"><b>${h ? `${pad(h.numero)} · ${esc(h.titulo)}` : '(hino removido)'}</b>
+          <span class="chips">${(x.solistas || []).map((s, j) => `<button class="chip pequeno on" data-act="rTirarSolista" data-i="${i}" data-j="${j}" title="Tirar">🎤 ${esc(s.nome)} ✕</button>`).join('')}
+            <select class="add-solista" data-i="${i}" aria-label="Adicionar solista">
+              <option value="">+ quem faz o solo</option>
+              ${aprovados.filter((u) => !ja.has(u.uid)).map((u) => `<option value="${u.uid}">${esc(u.nome)}</option>`).join('')}
+            </select></span></span>
+        <span class="acoes"><button class="icone" data-act="rMover" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'}>▲</button><button class="icone" data-act="rMover" data-i="${i}" data-d="1" ${i < r.hinos.length - 1 ? '' : 'disabled'}>▼</button><button class="icone perigo" data-act="rTirar" data-i="${i}">✕</button></span>
+      </div>`;
+    }).join('') || '<p class="vazio">Nenhum hino ainda. Busque abaixo para adicionar.</p>'}</div>
+    <div class="busca"><input id="c-busca" type="search" placeholder="Adicionar hino: nome ou número" autocomplete="off"></div>
+    <div id="c-result" class="lista"></div>
+    <div class="botoes">
+      <button class="btn primario" data-act="rSalvar">Salvar</button>
+      <a class="btn" href="${e ? `#/evento/${e.id}` : `#/dia/${r.data}`}" data-act="rCancelar">Cancelar</a>
+      ${e ? `<button class="btn perigo" data-act="rExcluir">Excluir ${TIPOS[r.tipo].toLowerCase()}</button>` : ''}
+    </div>`,
+    depois() {
+      const liga = (sel, campo) => $(sel).addEventListener('input', (ev) => { r[campo] = ev.target.value; });
+      liga('#r-data', 'data'); liga('#r-hora', 'hora'); liga('#r-titulo', 'titulo'); liga('#r-obs', 'obs');
+      document.querySelectorAll('.add-solista').forEach((sel) => sel.addEventListener('change', () => {
+        const u = state.usuarios.find((x) => x.uid === sel.value);
+        if (!u) return;
+        const item = r.hinos[+sel.dataset.i];
+        item.solistas = [...(item.solistas || []), { uid: u.uid, nome: u.nome }];
+        render(true);
+      }));
+      const busca = $('#c-busca');
+      const mostrar = () => {
+        const q = norm(busca.value.trim());
+        if (!q) { $('#c-result').innerHTML = ''; return; }
+        const l = ordenados().filter((h) => (/^\d+$/.test(q) ? String(h.numero).startsWith(String(Number(q))) : norm(h.titulo + ' ' + h.cantor).includes(q))).slice(0, 8);
+        $('#c-result').innerHTML = l.map((h) => `<button class="linha" data-act="rAdd" data-id="${h.id}"><span class="num">${pad(h.numero)}</span><span class="info"><b>${esc(h.titulo)}</b><small>${esc(h.cantor)}</small></span><span class="icones">${r.hinos.some((x) => x.id === h.id) ? '<i>já está</i>' : '<i>+ adicionar</i>'}</span></button>`).join('') || '<p class="vazio">Nada encontrado.</p>';
+      };
+      busca.addEventListener('input', mostrar);
+      busca.value = ui.cBusca || '';
+      mostrar();
+    },
+  };
+}
+
+// ---------------- portão de acesso (entrar / cadastrar / aguardando) ----------------
+const logoTopo = `<div class="portao-logo"><img src="img/logo.png" alt="Conectados em Cristo"><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>`;
+const avisoDemo = () => (state.modo === 'demo'
+  ? '<p class="dica centro">Modo demonstração: login simulado; os dados ficam só neste aparelho.</p>' : '');
+// logo da igreja, discreta, no pé da tela de entrada
+const rodapeIgreja = '<div class="rodape-igreja"><img src="img/logo-igreja.png" alt="I.MISS. · A Palavra de Cristo Renovada" width="56" height="51"></div>';
+
+function telaPortao() {
+  // logado, mas ainda sem acesso
+  if (state.user && !temAcesso()) {
+    const recusado = state.status === 'recusado';
+    return {
+      html: `<div class="portao">${logoTopo}
+        <div class="cartao centro">
+          <div class="selo-grande ${recusado ? 'recusado' : ''}">${recusado ? '✕' : '⏳'}</div>
+          <h2>${recusado ? 'Acesso não aprovado' : 'Aguardando aprovação'}</h2>
+          <p>Olá, <b>${esc(state.user.nome)}</b>!</p>
+          <p>${recusado
+            ? 'Seu acesso não foi aprovado por um administrador. Se acha que é um engano, fale com a liderança do grupo.'
+            : 'Seu pedido de acesso foi enviado. Assim que um administrador aprovar, o repertório abre aqui automaticamente.'}</p>
+          <p class="dica">${esc(state.user.email)}</p>
+          <button class="btn" data-act="logout">Sair</button>
+        </div>${avisoDemo()}${rodapeIgreja}</div>`,
+    };
+  }
+
+  const demo = state.modo === 'demo';
+  return {
+    form: demo ? 'foco' : false,
+    html: `<div class="portao">${logoTopo}
+      <div class="cartao centro">
+        <h2>Bem-vindo!</h2>
+        <p>Entre com sua conta Google. No primeiro acesso, um administrador precisa aprovar o seu pedido.</p>
+        ${demo ? `
+        <form id="f-simula" class="form esquerda">
+          <p class="dica">Modo demonstração: simule a conta Google digitando nome e e-mail.</p>
+          <label class="campo">Nome<input name="nome" autocomplete="name"></label>
+          <label class="campo">E-mail Google<input name="email" type="email" autocapitalize="none" required></label>
+          <button class="btn largo google" type="submit">${iconeGoogle} Continuar com Google</button>
+        </form>`
+        : `<button class="btn largo google" data-act="google">${iconeGoogle} Continuar com Google</button>`}
+      </div>
+      ${avisoDemo()}${rodapeIgreja}</div>`,
+    depois() {
+      $('#f-simula')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        document.activeElement?.blur();
+        try { await api.entrarGoogle(f); render(true); } catch (err) { toast(err.message); }
+      });
+    },
+  };
+}
+
+const iconeGoogle = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 2.9-2.2 5.4-4.7 7.1l7.6 5.9c4.4-4.1 6.9-10.1 6.9-17.5z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>`;
+
+// ---------------- conta / administração ----------------
+function telaConta() {
+  const u = state.user;
+  const pend = state.usuarios.filter((x) => x.status === 'pendente').length;
+  return {
+    html: `
+    <h2 class="secao">Conta</h2>
+    <div class="cartao">
+      <div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)} · <span class="selo">${state.isDono ? 'Proprietário' : state.isAdmin ? 'Admin' : 'Membro'}</span></small></div></div>
+      <button class="btn" data-act="logout">Sair</button>
+      ${state.modo === 'demo' ? '<p class="dica">Modo demonstração: os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>' : ''}
+    </div>
+
+    <h3 class="secao">Leitura e aparência</h3>
+    <div class="cartao">
+      <a class="btn largo" href="#/aparencia" style="margin:0 0 8px">🎨 Cores do app e fonte da letra</a>
+      <div class="linha-pref">Tamanho da letra
+        <span><button class="icone" data-act="fonte" data-d="-2">A−</button> <b>${pref.get('fonte', 20)}</b> <button class="icone" data-act="fonte" data-d="2">A+</button></span></div>
+      <label class="linha-pref">Mostrar meus grifos <input type="checkbox" data-act="verMeus" ${pref.get('verMeus', true) ? 'checked' : ''}></label>
+    </div>
+
+    ${state.isAdmin ? `
+    <h3 class="secao">Administração</h3>
+    <div class="cartao botoes col">
+      <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Usuários${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
+      <a class="btn" href="#/devocionais/novo">📖 Publicar devocional</a>
+      <a class="btn" href="#/devocionais">Devocionais publicados e agendados</a>
+      <a class="btn" href="#/editar/novo">+ Adicionar hino novo</a>
+      <a class="btn" href="#/ordem">Organizar numeração</a>
+      <a class="btn" href="#/agenda">Agenda: cultos, ensaios e solos</a>
+      ${!state.hinos.length ? '<button class="btn" data-act="importar">Importar repertório inicial (41 hinos)</button>' : ''}
+    </div>
+    <h3 class="secao">Backup</h3>
+    <div class="cartao botoes col">
+      <p class="dica">Baixa uma cópia de todos os hinos, cultos, ensaios e da lista de usuários. Faça antes de mudanças grandes.</p>
+      <button class="btn" data-act="baixarBackup">⬇ Baixar backup dos dados</button>
+      ${state.isDono ? `<label class="btn">⬆ Restaurar backup<input type="file" accept="application/json,.json" data-act="restaurar" hidden></label>
+      <p class="dica">Restaurar recoloca hinos, cultos e ensaios do arquivo (os que têm o mesmo código são substituídos). Usuários não são alterados.</p>` : ''}
+    </div>` : ''}
+    <p class="rodape">Repertório Conectados em Cristo · ${state.hinos.length} hinos · versão ${VERSAO.versao ?? '?'}</p>`,
+  };
+}
+
+function telaCadastros() {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode ver os usuários.</p>' };
+  const aba = ui.abaCadastros || 'pendente';
+  const grupos = {
+    pendente: ['Aguardando', (u) => u.status === 'pendente'],
+    membro: ['Membros', (u) => u.status === 'aprovado' && u.papel !== 'admin' && !u.dono],
+    admin: ['Admins', (u) => u.status === 'aprovado' && (u.papel === 'admin' || u.dono)],
+    recusado: ['Recusados', (u) => u.status === 'recusado'],
+  };
+  const lista = state.usuarios.filter(grupos[aba][1]).sort((x, y) => (y.dono - x.dono) || (y.criadoEm || 0) - (x.criadoEm || 0));
+  const quando = (t) => (t ? new Date(t).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : '');
+  const eu = (u) => u.uid === state.user?.uid;
+  const btn = (u, rotulo, mud, cls = '', confirma = '') =>
+    `<button class="btn pequeno ${cls}" data-act="usuario" data-uid="${u.uid}" data-mud='${JSON.stringify(mud)}' ${confirma ? `data-confirma="${esc(confirma)}"` : ''}>${rotulo}</button>`;
+  const acoesDe = (u) => {
+    if (u.dono) return '<span class="selo">Proprietário</span>';
+    if (eu(u)) return '<span class="dica">você</span>';
+    if (u.status === 'pendente') return btn(u, 'Aprovar como membro', { status: 'aprovado', papel: 'membro' }, 'primario')
+      + btn(u, 'Aprovar como admin', { status: 'aprovado', papel: 'admin' }) + btn(u, 'Recusar', { status: 'recusado' }, 'perigo');
+    if (u.status === 'recusado') return btn(u, 'Aprovar como membro', { status: 'aprovado', papel: 'membro' });
+    const papel = `<div class="seg">
+        <button class="${u.papel !== 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"membro"}'>Membro</button>
+        <button class="${u.papel === 'admin' ? 'on' : ''}" data-act="usuario" data-uid="${u.uid}" data-mud='{"papel":"admin"}' data-confirma="Tornar ${esc(u.nome)} admin? Admins podem editar hinos, cultos e usuários.">Admin</button>
+      </div>`;
+    return papel + btn(u, 'Remover acesso', { status: 'recusado', papel: 'membro' }, 'perigo', `Remover o acesso de ${u.nome} ao repertório?`);
+  };
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Usuários</h2><small>Aprove cadastros e defina membros e admins</small></div></div></div>
+    <div class="filtros">${Object.entries(grupos).map(([k, [n, f]]) =>
+      `<button class="chip ${aba === k ? 'on' : ''}" data-act="abaCadastros" data-v="${k}">${n} (${state.usuarios.filter(f).length})</button>`).join('')}</div>
+    <div class="lista">${lista.length ? lista.map((u) => `<div class="linha cadastro">
+        <span class="num avatar">${esc((u.nome || '?').trim()[0].toUpperCase())}</span>
+        <span class="info"><b>${esc(u.nome)}</b><small>${esc(u.email)}${u.criadoEm ? ` · ${quando(u.criadoEm)}` : ''}</small></span>
+        <span class="acoes">${acoesDe(u)}</span></div>`).join('')
+      : `<p class="vazio">${aba === 'pendente' ? 'Nenhum cadastro aguardando aprovação.' : 'Ninguém aqui.'}</p>`}</div>
+`,
+  };
+}
+
+function telaAparencia() {
+  const a = aparenciaAtual();
+  const fonte = pref.get('fonte', 20);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Aparência</h2><small>Só muda no seu app. Fica salvo na sua conta.</small></div></div></div>
+
+    <h3 class="secao">Tema</h3>
+    ${GRUPOS_TEMAS.map(([grupo, chaves]) => `<p class="grupo-temas">${grupo}</p>
+    <div class="temas">${chaves.map((k) => { const t = TEMAS[k]; return `
+      <button class="tema-op ${a.tema === k ? 'on' : ''}" data-act="tema" data-v="${k}" aria-label="Tema ${t.nome}">
+        <span class="amostra">${[t.preto, t.fundo, t.vinho, t.areia].map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${t.nome}</b>
+      </button>`; }).join('')}</div>`).join('')}
+
+    <h3 class="secao">Cor de destaque</h3>
+    <p class="dica">Cada tema já vem com a sua. Troque só se quiser outra.</p>
+    <div class="cores">
+      <button class="cor ${!a.destaque ? 'on' : ''}" style="background:conic-gradient(${(TEMAS[a.tema] || TEMAS.areia).areia} 0 50%, ${(TEMAS[a.tema] || TEMAS.areia).vinho} 0)" title="Cor do próprio tema" data-act="destaque" data-v=""></button>
+      ${DESTAQUES.map(([c, n]) => `<button class="cor ${a.destaque === c ? 'on' : ''}" style="background:${c}" title="${n}" data-act="destaque" data-v="${c}"></button>`).join('')}
+      <label class="cor livre" title="Escolher outra cor"><input type="color" data-act="destaqueLivre" value="${a.destaque || '#600F1E'}">+</label>
+    </div>
+
+    <h3 class="secao">Letra dos hinos</h3>
+    <div class="filtros">${Object.entries(FONTES_LETRA).map(([k, [n, f]]) =>
+      `<button class="chip ${a.fonteLetra === k ? 'on' : ''}" style="font-family:${f.replace(/"/g, '&quot;')}" data-act="fonteLetra" data-v="${k}">${n}</button>`).join('')}</div>
+    <div class="linha-pref">Tamanho
+      <span><button class="icone" data-act="fonte" data-d="-2">A−</button> <b>${fonte}</b> <button class="icone" data-act="fonte" data-d="2">A+</button></span></div>
+
+    <h3 class="secao">Prévia</h3>
+    <div class="previa">
+      <div class="linha"><span class="num">07</span><span class="info"><b>Como Flecha <span class="novo">NOVO</span></b><small>Samuel Dias e Carol Braga</small></span></div>
+      <article class="letra" style="--fonte:${fonte}px">
+        <div class="estrofe grifada" style="--grifo:#FFF176"><span class="parte fem">Solo feminino</span><p>Uma estrofe grifada<br>aparece assim</p></div>
+        <div class="estrofe"><p>E uma estrofe sem grifo<br>fica desse jeito</p></div>
+      </article>
+      <div class="botoes"><span class="btn primario">Botão principal</span><span class="chip on">Selecionado</span></div>
+    </div>
+    <div class="botoes"><button class="btn" data-act="aparenciaPadrao">Voltar ao padrão</button></div>`,
+  };
+}
+
+function telaEditarHino(id) {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode editar hinos.</p>' };
+  const novo = id === 'novo';
+  const h = novo
+    ? { id: novoId(), criadoEm: Date.now(), numero: Math.max(0, ...state.hinos.map((x) => x.numero)) + 1, titulo: '', cantor: '', estrofes: [], videoVoz: '', videoPlayback: '', grifosPadrao: {} }
+    : hinoPorId(id);
+  if (!h) return { html: '<p class="vazio">Hino não encontrado.</p>' };
+  const ytBusca = (extra) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${h.titulo} ${h.cantor} ${extra}`)}`;
+  return {
+    form: true,
+    html: `
+    <div class="hino-topo"><a href="${novo ? '#/hinos' : `#/hino/${h.id}`}" class="voltar">←</a><div class="titulo"><div><h2>${novo ? 'Novo hino' : 'Editar hino'}</h2></div></div></div>
+    <form id="form-hino" class="form">
+      <div class="duas"><label class="campo curto">Número<input name="numero" type="number" min="1" required value="${h.numero}"></label>
+      <label class="campo">Nome do hino<input name="titulo" required value="${esc(h.titulo)}"></label></div>
+      <label class="campo">Cantor(a)<input name="cantor" value="${esc(h.cantor)}"></label>
+      <label class="campo">Letra <small>Separe as estrofes com uma linha em branco.</small>
+        <textarea name="letra" rows="14" placeholder="Primeira estrofe…&#10;&#10;Refrão…">${esc((h.estrofes || []).map((e) => e.texto).join('\n\n'))}</textarea></label>
+      ${!novo && h.buscaLetra ? `<a class="link-adm" href="${esc(h.buscaLetra)}" target="_blank" rel="noopener">Procurar a letra na internet ↗</a>` : ''}
+      <label class="campo">Link do YouTube — voz (cantada)<input name="videoVoz" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" value="${esc(h.videoVoz)}"></label>
+      ${h.titulo ? `<a class="link-adm" href="${ytBusca('oficial')}" target="_blank" rel="noopener">Procurar a versão cantada ↗</a>` : ''}
+      <label class="campo">Link do YouTube — playback<input name="videoPlayback" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" value="${esc(h.videoPlayback)}"></label>
+      ${h.titulo ? `<a class="link-adm" href="${ytBusca('playback')}" target="_blank" rel="noopener">Procurar o playback ↗</a>` : ''}
+      <div class="botoes">
+        <button class="btn primario" type="submit">Salvar</button>
+        ${novo ? '' : '<button class="btn perigo" type="button" data-act="excluirHino">Excluir hino</button>'}
+      </div>
+    </form>`,
+    depois() {
+      $('#form-hino').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(e.target));
+        for (const k of ['videoVoz', 'videoPlayback']) {
+          if (f[k].trim() && !ytId(f[k])) { toast('Link do YouTube inválido. Cole o link de um vídeo.'); return; }
+        }
+        const textos = f.letra.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean);
+        const antigas = h.estrofes || [];
+        const estrofes = textos.map((texto, i) => ({ texto, parte: antigas[i]?.parte || '' }));
+        const grifosPadrao = Object.fromEntries(Object.entries(h.grifosPadrao || {}).filter(([i]) => i < estrofes.length));
+        const numero = Math.max(1, parseInt(f.numero, 10) || 1);
+        const salvo = { ...h, numero, titulo: f.titulo.trim(), cantor: f.cantor.trim(), estrofes, videoVoz: f.videoVoz.trim(), videoPlayback: f.videoPlayback.trim(), grifosPadrao };
+        // se o número já está em uso, empurra os seguintes uma posição
+        const mudados = [salvo];
+        if (state.hinos.some((x) => x.id !== h.id && x.numero === numero)) {
+          state.hinos.filter((x) => x.id !== h.id && x.numero >= numero).forEach((x) => mudados.push({ ...x, numero: x.numero + 1 }));
+        }
+        await api.salvarHinos(mudados);
+        toast('Hino salvo.');
+        location.hash = `#/hino/${h.id}`;
+      });
+    },
+  };
+}
+
+function telaOrdem() {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode organizar a numeração.</p>' };
+  const l = ordenados();
+  const buraco = l.some((h, i) => h.numero !== i + 1);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Organizar numeração</h2><small>Use ▲ ▼ para trocar a posição</small></div></div></div>
+    ${buraco ? '<div class="aviso">Há números pulados ou repetidos. <button class="btn pequeno" data-act="renumerar">Renumerar 1, 2, 3…</button></div>' : ''}
+    <div class="lista ordem">${l.map((h, i) => `<div class="linha"><span class="num">${pad(h.numero)}</span><span class="info"><b>${esc(h.titulo)}</b><small>${esc(h.cantor)}</small></span>
+      <span class="acoes"><button class="icone" data-act="mover" data-id="${h.id}" data-d="-1" ${i ? '' : 'disabled'}>▲</button><button class="icone" data-act="mover" data-id="${h.id}" data-d="1" ${i < l.length - 1 ? '' : 'disabled'}>▼</button></span></div>`).join('')}</div>`,
+  };
+}
+
+// ---------------- ações (delegação de cliques) ----------------
+const acoes = {
+  filtro(el) { ui.soFavoritos = el.dataset.v === '1'; ui.soNovos = el.dataset.v === '2'; render(true); },
+  async fav() {
+    if (precisaLogin()) { toast('Entre com Google para salvar favoritos.'); return; }
+    const id = rota().partes[1];
+    const f = state.perfil.favoritos || (state.perfil.favoritos = []);
+    const i = f.indexOf(id);
+    if (i >= 0) f.splice(i, 1); else f.push(id);
+    await api.salvarPerfil();
+    toast(i >= 0 ? 'Removido dos favoritos.' : 'Salvo nos favoritos.');
+  },
+  fonte(el) {
+    const v = Math.min(44, Math.max(14, pref.get('fonte', 20) + Number(el.dataset.d)));
+    pref.set('fonte', v);
+    render(true);
+  },
+  verMeus(el) { pref.set('verMeus', el.checked); render(true); },
+  tocar(el) { const h = hinoPorId(rota().partes[1]); if (h) tocar(h, el.dataset.tipo); },
+  estrofe(el) { ui.sheet = { hinoId: rota().partes[1], i: Number(el.dataset.i) }; renderSheet(); },
+  fecharSheet() { ui.sheet = null; renderSheet(); },
+  async grifar(el) { await aplicarGrifo(el.dataset.alvo, el.dataset.cor); },
+  async parte(el) {
+    const { hinoId, i } = ui.sheet;
+    const h = hinoPorId(hinoId);
+    const estrofes = h.estrofes.map((e, j) => (j === i ? { ...e, parte: el.dataset.v } : e));
+    await api.salvarHino({ ...h, estrofes });
+  },
+  playerPlay() { if (!yt) return; const st = yt.getPlayerState(); if (st === 1 || st === 3) yt.pauseVideo(); else yt.playVideo(); },
+  playerPular(el) { if (yt) yt.seekTo(Math.max(0, yt.getCurrentTime() + Number(el.dataset.s)), true); },
+  playerFechar: fecharPlayer,
+  playerIr() { if (tocando.hinoId) location.hash = `#/hino/${tocando.hinoId}`; },
+  mes(el) { ui.mes = new Date(ui.mes.getFullYear(), ui.mes.getMonth() + Number(el.dataset.d), 1); render(true); },
+  dia(el) {
+    const d = el.dataset.d;
+    const evs = eventosDoDia(d);
+    if (evs.length === 1 && !state.isAdmin) location.hash = `#/evento/${evs[0].id}`;
+    else if (evs.length || state.isAdmin) location.hash = `#/dia/${d}`;
+    else toast('Nada marcado neste dia.');
+  },
+  rTipo(el) { ui.rascunho.tipo = el.dataset.v; render(true); },
+  rAdd(el) {
+    const r = ui.rascunho;
+    if (!r.hinos.some((x) => x.id === el.dataset.id)) r.hinos.push({ id: el.dataset.id, solistas: [] });
+    ui.cBusca = $('#c-busca').value;
+    render(true);
+    $('#c-busca').focus();
+  },
+  rMover(el) { const h = ui.rascunho.hinos; const i = +el.dataset.i; const j = i + Number(el.dataset.d); [h[i], h[j]] = [h[j], h[i]]; render(true); },
+  rTirar(el) { ui.rascunho.hinos.splice(+el.dataset.i, 1); render(true); },
+  rTirarSolista(el) { ui.rascunho.hinos[+el.dataset.i].solistas.splice(+el.dataset.j, 1); render(true); },
+  async rSalvar() {
+    const { _chave, ...r } = ui.rascunho;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.data)) { toast('Escolha a data.'); return; }
+    r.titulo = r.titulo.trim(); r.obs = r.obs.trim();
+    await api.salvarEvento(r);
+    ui.rascunho = null; ui.cBusca = '';
+    toast(`${TIPOS[r.tipo]} salvo.`);
+    location.hash = `#/evento/${r.id}`;
+  },
+  rCancelar() { ui.rascunho = null; ui.cBusca = ''; },
+  async rExcluir() {
+    const r = ui.rascunho;
+    if (!confirm(`Excluir este ${TIPOS[r.tipo].toLowerCase()} da agenda?`)) return;
+    await api.excluirEvento(r.id);
+    ui.rascunho = null;
+    location.hash = `#/dia/${r.data}`;
+  },
+  irNovos() { ui.soNovos = true; ui.soFavoritos = false; ui.busca = ''; },
+  irFavoritos() { ui.soFavoritos = true; ui.soNovos = false; ui.busca = ''; },
+  async excluirDevocional(el) {
+    if (!confirm('Excluir este devocional?')) return;
+    await api.excluirDevocional(el.dataset.id);
+    toast('Devocional excluído.');
+    location.hash = '#/devocionais';
+  },
+  async excluirHino() {
+    const id = rota().partes[1];
+    const h = hinoPorId(id);
+    if (!confirm(`Excluir o hino "${h.titulo}"? Isso não pode ser desfeito.`)) return;
+    await api.excluirHino(id);
+    toast('Hino excluído.');
+    location.hash = '#/hinos';
+  },
+  async mover(el) {
+    const l = ordenados();
+    const i = l.findIndex((h) => h.id === el.dataset.id);
+    const j = i + Number(el.dataset.d);
+    const a = l[i]; const b = l[j];
+    await api.salvarHinos([{ ...a, numero: b.numero }, { ...b, numero: a.numero }]);
+  },
+  async renumerar() {
+    const mud = ordenados().map((h, i) => ({ ...h, numero: i + 1 })).filter((h) => h.numero !== hinoPorId(h.id).numero);
+    await api.salvarHinos(mud);
+    toast('Numeração organizada.');
+  },
+  tema(el) { mudarAparencia({ tema: el.dataset.v, destaque: '' }); }, // cada tema vem com o seu destaque
+  destaque(el) { mudarAparencia({ destaque: el.dataset.v }); },
+  fonteLetra(el) { mudarAparencia({ fonteLetra: el.dataset.v }); },
+  aparenciaPadrao() { mudarAparencia({ ...APARENCIA_PADRAO }); toast('Aparência padrão restaurada.'); },
+  async importar() { await api.importarRepertorio(); toast('Repertório importado.'); },
+  baixarBackup() {
+    const dados = api.backup(VERSAO.versao);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
+    a.download = `backup-repertorio-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast(`Backup baixado: ${dados.hinos.length} hinos, ${dados.eventos.length} cultos/ensaios.`);
+  },
+  async login() { acoes.google(); },
+  async google() { try { await api.entrarGoogle(); } catch (e) { toast(e.message || 'Não foi possível entrar.'); } },
+  async logout() { fecharPlayer(); await api.logout(); location.hash = '#/'; render(true); },
+  abaCadastros(el) { ui.abaCadastros = el.dataset.v; render(true); },
+  async usuario(el) {
+    if (el.dataset.confirma && !confirm(el.dataset.confirma)) return;
+    const mud = JSON.parse(el.dataset.mud);
+    try {
+      await api.atualizarUsuario(el.dataset.uid, mud);
+      toast(mud.status === 'recusado' ? 'Acesso removido.' : mud.status === 'aprovado' ? 'Cadastro aprovado.' : mud.papel === 'admin' ? 'Agora é admin.' : 'Agora é membro.');
+    } catch (e) { toast(e.message || 'Não foi possível alterar.'); }
+  },
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.tagName === 'INPUT') return;
+  const f = acoes[el.dataset.act];
+  if (!f) return;
+  if (el.tagName === 'BUTTON' || el.dataset.act === 'estrofe' || el.classList.contains('fundo')) e.preventDefault();
+  f(el, e);
+});
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.matches('input[type=color][data-act=corLivre]')) aplicarGrifo(el.dataset.alvo, el.value);
+  else if (el.matches('input[type=checkbox][data-act=verMeus]')) acoes.verMeus(el);
+  else if (el.matches('input[type=file][data-act=restaurar]') && el.files[0]) restaurarArquivo(el);
+  else if (el.matches('input[type=color][data-act=destaqueLivre]')) mudarAparencia({ destaque: el.value });
+});
+
+async function restaurarArquivo(input) {
+  try {
+    const dados = JSON.parse(await input.files[0].text());
+    const quando = dados.exportadoEm ? new Date(dados.exportadoEm).toLocaleString('pt-BR') : 'data desconhecida';
+    if (!confirm(`Restaurar o backup de ${quando}?\n${dados.hinos?.length ?? 0} hinos e ${dados.eventos?.length ?? 0} cultos/ensaios serão gravados.`)) return;
+    const r = await api.restaurar(dados);
+    toast(`Backup restaurado: ${r.hinos} hinos, ${r.eventos} cultos/ensaios.`);
+  } catch (e) {
+    toast(e instanceof SyntaxError ? 'Arquivo inválido.' : (e.message || 'Não foi possível restaurar.'));
+  } finally { input.value = ''; }
+}
+
+// versão do app (version.json), mostrada em Conta
+const VERSAO = {};
+fetch('version.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => { Object.assign(VERSAO, v); render(); }).catch(() => {});
+
+window.addEventListener('hashchange', () => { ui.sheet = null; render(true); window.scrollTo(0, 0); });
+onChange(() => { sincronizarAparencia(); render(); });
+
+// A barra de baixo é montada aqui (e não só no index.html), para que os 4 ícones
+// apareçam mesmo se o celular estiver com uma página antiga guardada.
+// Ícones desenhados (SVG), todos do mesmo tamanho e traço.
+const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const NAV = [
+  ['inicio', '#/', svg('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h14V9"/><path d="M10 21v-6h4v6"/>'), 'Início'],
+  ['hinos', '#/hinos', svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'), 'Hinos'],
+  ['agenda', '#/agenda', svg('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'), 'Agenda'],
+  ['conta', '#/conta', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>'), 'Conta'],
+];
+$('.nav').innerHTML = NAV.map(([k, href, ic, nome]) => `<a href="${href}" data-nav="${k}"><span>${ic}</span>${nome}</a>`).join('');
+
+init();
+render(true);
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

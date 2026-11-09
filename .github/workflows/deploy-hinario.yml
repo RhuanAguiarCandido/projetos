@@ -1,0 +1,40 @@
+# Publica o Repertório no Firebase Hosting (e as regras do Firestore) a cada
+# alteração em conectados-em-cristo/app na branch principal do repositório
+# (hoje claude/entrellun-video) ou na branch de desenvolvimento.
+#
+# Projeto: conectados-em-cristo-fe363 (definido em conectados-em-cristo/app/.firebaserc)
+# Precisa, em Settings → Secrets and variables → Actions do repositório:
+#   - Secret  FIREBASE_SERVICE_ACCOUNT → conteúdo do JSON da conta de serviço
+# Veja conectados-em-cristo/app/SETUP.md, passo 3.
+name: Publicar Repertório
+
+on:
+  push:
+    branches: [main, claude/entrellun-video, claude/admiring-lovelace-ibx930]
+    paths: ['conectados-em-cristo/app/**']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: conectados-em-cristo/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Credenciais
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::Falta o secret FIREBASE_SERVICE_ACCOUNT (veja SETUP.md, passo 3)."
+            exit 1
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Publicar (hosting + regras)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@13 deploy --only hosting,firestore:rules --non-interactive

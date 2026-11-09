@@ -1,0 +1,8 @@
+{
+  "nome": "Preto · Areia · Vinho",
+  "cores": [
+    { "nome": "Preto", "hex": "#000000", "rgb": [0, 0, 0] },
+    { "nome": "Areia", "hex": "#ECD3B5", "rgb": [236, 211, 181] },
+    { "nome": "Vinho", "hex": "#600F1E", "rgb": [96, 15, 30], "rotulo_original": "#E9E9E9" }
+  ]
+}

@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // só aceita login com conta Google
+    function logado() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function meuEmail() { return request.auth.token.email; }
+
+    // Proprietário: rhuan.4b@gmail.com com e-mail verificado (login Google)
+    function dono() {
+      return logado() && meuEmail() == 'rhuan.4b@gmail.com' && request.auth.token.email_verified == true;
+    }
+    function meuCadastro() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function temCadastro() {
+      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+    // Admin: proprietário ou membro aprovado com papel "admin"
+    function adm() {
+      return dono()
+        || (temCadastro() && meuCadastro().papel == 'admin' && meuCadastro().status == 'aprovado');
+    }
+    function aprovado() {
+      return adm() || (temCadastro() && meuCadastro().status == 'aprovado');
+    }
+
+    // Hinos e agenda (cultos e ensaios): aprovados leem; só admins alteram
+    match /hinos/{id}   { allow read: if aprovado(); allow write: if adm(); }
+    match /eventos/{id} { allow read: if aprovado(); allow write: if adm(); }
+    // Devocionais: aprovados leem; só admins publicam, editam e apagam
+    match /devocionais/{id} { allow read: if aprovado(); allow write: if adm(); }
+
+    // Usuários
+    match /usuarios/{uid} {
+      function meu() { return logado() && request.auth.uid == uid; }
+      function campos() { return request.resource.data; }
+      // ninguém mexe no cadastro do proprietário além dele mesmo
+      function ehDoProprietario() { return resource.data.email == 'rhuan.4b@gmail.com'; }
+
+      allow read: if meu() || adm();
+      // primeiro login: só o próprio registro, como membro pendente
+      allow create: if meu() && (
+        (campos().status == 'pendente' && campos().papel == 'membro') || dono());
+      // a própria pessoa salva favoritos e grifos, mas não muda status, papel nem e-mail
+      allow update: if
+        (meu() && campos().status == resource.data.status
+               && campos().get('papel', 'membro') == resource.data.get('papel', 'membro')
+               && campos().email == resource.data.email)
+        || (adm() && !ehDoProprietario() && campos().email == resource.data.email)
+        || (dono() && meu());
+      allow delete: if adm() && !ehDoProprietario();
+    }
+  }
+}

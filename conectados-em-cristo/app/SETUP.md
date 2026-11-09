@@ -23,7 +23,16 @@ O plano gratuito (**Spark**) atende o grupo. Não é preciso ativar o Blaze.
 ## 3. Publicar
 Escolha **uma** das opções.
 
-### Opção A: pelo seu computador (mais rápida para a 1ª vez)
+### Opção A: pelo seu computador com o script (mais fácil)
+Com Git e Node.js instalados e o repositório baixado em `Documentos\projetos`:
+```powershell
+cd $HOME\Documents\projetos
+.\publicar.ps1
+```
+O script faz tudo: baixa a versão nova, instala a ferramenta do Firebase,
+pede o login, registra o app e cria o banco na primeira vez, publica e abre o app.
+
+### Opção A2: os mesmos passos, à mão
 Precisa do [Node.js](https://nodejs.org) instalado.
 ```bash
 npm install -g firebase-tools

@@ -69,10 +69,10 @@ Siga o checklist "Ao alterar o app" do `CLAUDE.md`. Além dele:
 - Aumente `versao` em `version.json` **e** o número em `sw.js`, os dois iguais,
   e atualize `data` e `notas`.
 - Teste no modo demonstração antes de salvar.
-- No fim, dê os comandos de PowerShell para publicar:
+- No fim, diga ao dono para publicar colando no PowerShell:
   ```powershell
   cd $HOME\Documents\projetos
-  git pull
-  cd conectados-em-cristo\app
-  firebase deploy --only hosting,firestore:rules
+  .\publicar.ps1
   ```
+  (o script `publicar.ps1` baixa a versão nova, faz login se precisar e publica).
+  Se mudar algo no script, mantenha UTF-8 **com BOM** e quebras de linha CRLF.

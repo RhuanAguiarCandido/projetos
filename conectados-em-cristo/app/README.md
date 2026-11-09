@@ -95,9 +95,8 @@ O app no ar é sempre o que está no repositório. Para mudar alguma coisa:
 1. Abra uma sessão do Claude com este repositório e digite **`/repertorio`**: ele
    sincroniza, confere a versão publicada e cria um backup do código. Depois peça a alteração.
 2. A alteração é salva no GitHub (commit e push).
-3. Com a publicação automática configurada (SETUP.md, opção B), o GitHub publica
-   sozinho em alguns minutos. Sem ela, rode `firebase deploy --only hosting,firestore:rules`
-   dentro de `conectados-em-cristo/app`.
+3. Publique: no PowerShell, `cd $HOME\Documents\projetos` e depois `.\publicar.ps1`.
+   (Com a publicação automática pelo GitHub configurada, nem isso é preciso.)
 4. Nos celulares, a versão nova aparece ao reabrir o app (às vezes é preciso
    fechar e abrir duas vezes, por causa do modo offline).
 

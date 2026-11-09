@@ -48,7 +48,8 @@ PWA em HTML/CSS/JS puro (sem build, sem framework), módulos ES.
    dentro de `app/` (projeto `conectados-em-cristo-fe363`, já em `.firebaserc`),
    ou automática pelo GitHub Actions (`.github/workflows/deploy-hinario.yml`)
    quando o secret `FIREBASE_SERVICE_ACCOUNT` existir.
-6. No fim, diga ao dono os comandos de PowerShell para publicar:
-   `cd $HOME\Documents\projetos; git pull; cd conectados-em-cristo\app; firebase deploy --only hosting,firestore:rules`
+6. No fim, diga ao dono para publicar com o script `publicar.ps1` (raiz do repo),
+   que baixa a versão nova, instala o que faltar, faz login e publica:
+   `cd $HOME\Documents\projetos` e depois `.\publicar.ps1`
 
 App no ar: https://conectados-em-cristo-fe363.web.app

@@ -717,6 +717,8 @@ function telaEditarEvento(e, params) {
 const logoTopo = `<div class="portao-logo"><img src="img/logo.png" alt="Conectados em Cristo"><h1>Repertório</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>`;
 const avisoDemo = () => (state.modo === 'demo'
   ? '<p class="dica centro">Modo demonstração: login simulado; os dados ficam só neste aparelho.</p>' : '');
+// logo da igreja, discreta, no pé da tela de entrada
+const rodapeIgreja = '<div class="rodape-igreja"><img src="img/logo-igreja.png" alt="I.MISS. · A Palavra de Cristo Renovada" width="56" height="51"></div>';
 
 function telaPortao() {
   // logado, mas ainda sem acesso
@@ -733,7 +735,7 @@ function telaPortao() {
             : 'Seu pedido de acesso foi enviado. Assim que um administrador aprovar, o repertório abre aqui automaticamente.'}</p>
           <p class="dica">${esc(state.user.email)}</p>
           <button class="btn" data-act="logout">Sair</button>
-        </div>${avisoDemo()}</div>`,
+        </div>${avisoDemo()}${rodapeIgreja}</div>`,
     };
   }
 
@@ -753,7 +755,7 @@ function telaPortao() {
         </form>`
         : `<button class="btn largo google" data-act="google">${iconeGoogle} Continuar com Google</button>`}
       </div>
-      ${avisoDemo()}</div>`,
+      ${avisoDemo()}${rodapeIgreja}</div>`,
     depois() {
       $('#f-simula')?.addEventListener('submit', async (e) => {
         e.preventDefault();

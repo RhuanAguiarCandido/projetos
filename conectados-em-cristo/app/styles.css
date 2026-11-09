@@ -218,6 +218,10 @@ a.linha:active, button.linha:active { background: var(--areia); }
 body.bloqueado .nav, body.bloqueado .player { display: none; }
 body.bloqueado { padding-bottom: 24px; }
 .portao { max-width: 420px; margin: 0 auto; padding: 24px 0; }
+/* na tela de entrada, o conteúdo ocupa a altura toda para a logo da igreja ficar no pé */
+body.bloqueado .portao { min-height: calc(100vh - 24px); min-height: calc(100dvh - 24px); display: flex; flex-direction: column; }
+.rodape-igreja { margin-top: auto; padding-top: 28px; text-align: center; opacity: .55; }
+.rodape-igreja img { width: 56px; height: auto; display: inline-block; }
 .portao-logo { text-align: center; margin-bottom: 20px; }
 .portao-logo img { width: 140px; height: auto; background: var(--areia); border-radius: 20px; padding: 12px; }
 .portao-logo h1 { margin: 12px 0 0; font-size: 36px; color: var(--tinta); }

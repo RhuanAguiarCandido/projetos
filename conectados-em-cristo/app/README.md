@@ -34,6 +34,8 @@ instalado na tela inicial ("Adicionar à tela de início").
 
 **Para admins**
 - Aprovar pedidos de acesso, definir quem é membro ou admin, remover acesso
+- **Backup** em *Conta → Backup*: baixar um arquivo com hinos, cultos, ensaios e
+  usuários; o proprietário pode restaurar a partir desse arquivo
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
@@ -86,7 +88,8 @@ Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 
 O app no ar é sempre o que está no repositório. Para mudar alguma coisa:
 
-1. Peça a alteração ao Claude, em qualquer sessão com este repositório.
+1. Abra uma sessão do Claude com este repositório e digite **`/repertorio`**: ele
+   sincroniza, confere a versão publicada e cria um backup do código. Depois peça a alteração.
 2. A alteração é salva no GitHub (commit e push).
 3. Com a publicação automática configurada (SETUP.md, opção B), o GitHub publica
    sozinho em alguns minutos. Sem ela, rode `firebase deploy --only hosting,firestore:rules`

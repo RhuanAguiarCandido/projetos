@@ -1,8 +1,8 @@
 // Service worker: guarda o app no aparelho para abrir sem internet.
-const CACHE = 'repertorio-v7';
+const CACHE = 'repertorio-v8'; // mesmo número de version.json
 const ARQUIVOS = [
   './', 'index.html', 'styles.css', 'app.js', 'store.js', 'config.js', 'seed.js',
-  'manifest.webmanifest', 'img/logo.png', 'img/icon-192.png', 'img/icon-512.png',
+  'manifest.webmanifest', 'version.json', 'img/logo.png', 'img/icon-192.png', 'img/icon-512.png',
 ];
 
 self.addEventListener('install', (e) => {

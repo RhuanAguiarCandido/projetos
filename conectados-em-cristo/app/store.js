@@ -92,6 +92,27 @@ export const api = {
   },
   importarRepertorio: () => api.salvarHinos(clone(SEED)),
 
+  // ---- backup ----
+  // Cópia de hinos e agenda (e da lista de usuários, para consulta) num arquivo JSON.
+  backup(versao) {
+    return {
+      app: 'repertorio-conectados', versao, exportadoEm: new Date().toISOString(), modo: state.modo,
+      hinos: clone(state.hinos), eventos: clone(state.eventos),
+      usuarios: clone(state.usuarios), // só consulta: não é restaurado
+    };
+  },
+  // Restaura hinos e agenda de um backup (só o proprietário). Não apaga nada que
+  // não esteja no arquivo; hinos e eventos com o mesmo id são substituídos.
+  async restaurar(dados) {
+    if (!state.isDono) throw erro('Só o proprietário pode restaurar um backup.');
+    if (!dados || dados.app !== 'repertorio-conectados' || !Array.isArray(dados.hinos) || !Array.isArray(dados.eventos)) {
+      throw erro('Este arquivo não é um backup do Repertório.');
+    }
+    for (let i = 0; i < dados.hinos.length; i += 400) await api.salvarHinos(dados.hinos.slice(i, i + 400));
+    for (const e of dados.eventos) await api.salvarEvento(e);
+    return { hinos: dados.hinos.length, eventos: dados.eventos.length };
+  },
+
   // ---- acesso (só Google) ----
   entrarGoogle: (simulado) => impl.entrarGoogle(simulado),
   logout: () => impl.logout(),

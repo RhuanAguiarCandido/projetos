@@ -617,8 +617,15 @@ function telaConta() {
       <a class="btn" href="#/ordem">Organizar numeração</a>
       <a class="btn" href="#/agenda">Agenda: cultos, ensaios e solos</a>
       ${!state.hinos.length ? '<button class="btn" data-act="importar">Importar repertório inicial (41 hinos)</button>' : ''}
+    </div>
+    <h3 class="secao">Backup</h3>
+    <div class="cartao botoes col">
+      <p class="dica">Baixa uma cópia de todos os hinos, cultos, ensaios e da lista de usuários. Faça antes de mudanças grandes.</p>
+      <button class="btn" data-act="baixarBackup">⬇ Baixar backup dos dados</button>
+      ${state.isDono ? `<label class="btn">⬆ Restaurar backup<input type="file" accept="application/json,.json" data-act="restaurar" hidden></label>
+      <p class="dica">Restaurar recoloca hinos, cultos e ensaios do arquivo (os que têm o mesmo código são substituídos). Usuários não são alterados.</p>` : ''}
     </div>` : ''}
-    <p class="rodape">Repertório Conectados em Cristo · ${state.hinos.length} hinos</p>`,
+    <p class="rodape">Repertório Conectados em Cristo · ${state.hinos.length} hinos · versão ${VERSAO.versao ?? '?'}</p>`,
   };
 }
 
@@ -818,6 +825,16 @@ const acoes = {
     toast('Numeração organizada.');
   },
   async importar() { await api.importarRepertorio(); toast('Repertório importado.'); },
+  baixarBackup() {
+    const dados = api.backup(VERSAO.versao);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
+    a.download = `backup-repertorio-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast(`Backup baixado: ${dados.hinos.length} hinos, ${dados.eventos.length} cultos/ensaios.`);
+  },
   async login() { acoes.google(); },
   async google() { try { await api.entrarGoogle(); } catch (e) { toast(e.message || 'Não foi possível entrar.'); } },
   async logout() { fecharPlayer(); await api.logout(); location.hash = '#/'; render(true); },
@@ -844,7 +861,24 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.matches('input[type=color][data-act=corLivre]')) aplicarGrifo(el.dataset.alvo, el.value);
   else if (el.matches('input[type=checkbox][data-act=verMeus]')) acoes.verMeus(el);
+  else if (el.matches('input[type=file][data-act=restaurar]') && el.files[0]) restaurarArquivo(el);
 });
+
+async function restaurarArquivo(input) {
+  try {
+    const dados = JSON.parse(await input.files[0].text());
+    const quando = dados.exportadoEm ? new Date(dados.exportadoEm).toLocaleString('pt-BR') : 'data desconhecida';
+    if (!confirm(`Restaurar o backup de ${quando}?\n${dados.hinos?.length ?? 0} hinos e ${dados.eventos?.length ?? 0} cultos/ensaios serão gravados.`)) return;
+    const r = await api.restaurar(dados);
+    toast(`Backup restaurado: ${r.hinos} hinos, ${r.eventos} cultos/ensaios.`);
+  } catch (e) {
+    toast(e instanceof SyntaxError ? 'Arquivo inválido.' : (e.message || 'Não foi possível restaurar.'));
+  } finally { input.value = ''; }
+}
+
+// versão do app (version.json), mostrada em Conta
+const VERSAO = {};
+fetch('version.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => { Object.assign(VERSAO, v); render(); }).catch(() => {});
 
 window.addEventListener('hashchange', () => { ui.sheet = null; render(true); window.scrollTo(0, 0); });
 onChange(() => render());

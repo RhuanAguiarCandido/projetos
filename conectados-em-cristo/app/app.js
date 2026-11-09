@@ -1,4 +1,4 @@
-import { state, onChange, init, api } from './store.js';
+import { state, onChange, init, api, temAcesso } from './store.js';
 
 // ---------------- utilidades ----------------
 const $ = (s, r = document) => r.querySelector(s);
@@ -59,7 +59,11 @@ function render(forcar = false) {
   telaAtual = chave;
 
   let v;
+  const liberado = state.pronto && temAcesso();
+  document.body.classList.toggle('bloqueado', !liberado);
   if (!state.pronto) v = { html: '<p class="vazio">Carregando…</p>' };
+  else if (!liberado) v = telaPortao();
+  else if (partes[0] === 'cadastros') v = telaCadastros();
   else if (partes[0] === 'hino' && partes[1]) v = telaHino(partes[1], params);
   else if (partes[0] === 'agenda') v = telaAgenda();
   else if (partes[0] === 'culto' && partes[1]) v = telaCulto(partes[1], params);
@@ -75,6 +79,8 @@ function render(forcar = false) {
   if (v.depois) v.depois();
   if (!forcar) window.scrollTo(0, scroll);
 
+  const pend = state.isAdmin ? state.usuarios.filter((x) => x.status === 'pendente').length : 0;
+  $('.nav [data-nav=conta]').dataset.badge = pend || '';
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('ativo', a.dataset.nav === (partes[0] || 'inicio')));
   manterTelaAcesa(partes[0] === 'hino');
   renderSheet();
@@ -121,6 +127,7 @@ function telaInicio() {
       <img src="img/logo.png" alt="Conectados em Cristo" class="logo">
       <div><h1>Hinário</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>
     </header>
+    ${state.isAdmin && state.usuarios.some((u) => u.status === 'pendente') ? `<a class="aviso link" href="#/cadastros">👤 ${state.usuarios.filter((u) => u.status === 'pendente').length} cadastro(s) aguardando sua aprovação →</a>` : ''}
     ${card}
     <div class="busca">
       <input id="busca" type="search" placeholder="Buscar por nome, número, cantor ou trecho" value="${esc(ui.busca)}" autocomplete="off">
@@ -429,29 +436,108 @@ function telaCulto(data, params) {
   };
 }
 
+// ---------------- portão de acesso (entrar / cadastrar / aguardando) ----------------
+const logoTopo = `<div class="portao-logo"><img src="img/logo.png" alt="Conectados em Cristo"><h1>Hinário</h1><p>Grupo de Jovens · Conectados em Cristo</p></div>`;
+const avisoDemo = () => (state.modo === 'demo'
+  ? '<p class="dica centro">Modo demonstração: cadastros e dados ficam só neste aparelho.</p>' : '');
+
+function telaPortao() {
+  // logado, mas ainda sem acesso
+  if (state.user && !temAcesso()) {
+    const recusado = state.status === 'recusado';
+    return {
+      html: `<div class="portao">${logoTopo}
+        <div class="cartao centro">
+          <div class="selo-grande ${recusado ? 'recusado' : ''}">${recusado ? '✕' : '⏳'}</div>
+          <h2>${recusado ? 'Cadastro não aprovado' : 'Aguardando aprovação'}</h2>
+          <p>Olá, <b>${esc(state.user.nome)}</b>!</p>
+          <p>${recusado
+            ? 'Seu cadastro não foi aprovado pelo administrador. Se acha que é um engano, fale com a liderança do grupo.'
+            : 'Seu cadastro foi enviado. Assim que o administrador aprovar, o hinário abre aqui automaticamente.'}</p>
+          <p class="dica">${esc(state.user.email)}</p>
+          <button class="btn" data-act="logout">Sair</button>
+        </div>${avisoDemo()}</div>`,
+    };
+  }
+
+  const aba = ui.portal || 'entrar';
+  const online = state.modo === 'online';
+  const abas = `<div class="abas">
+      <button class="${aba === 'entrar' ? 'on' : ''}" data-act="portal" data-v="entrar">Entrar</button>
+      <button class="${aba === 'cadastro' ? 'on' : ''}" data-act="portal" data-v="cadastro">Criar cadastro</button>
+    </div>`;
+  const google = online ? `<div class="ou"><span>ou</span></div>
+      <button class="btn largo google" type="button" data-act="google">Continuar com Google</button>` : '';
+
+  let corpo;
+  if (aba === 'adm') {
+    corpo = `<form id="f-acesso" data-tipo="adm" class="cartao form">
+        <h3>Acesso do Adm</h3>
+        <label class="campo">Usuário<input name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label class="campo">Senha<input name="senha" type="password" autocomplete="current-password" required></label>
+        <button class="btn primario largo" type="submit">Entrar como Adm</button>
+        <button class="btn-link" type="button" data-act="portal" data-v="entrar">← Voltar</button>
+      </form>`;
+  } else if (aba === 'cadastro') {
+    corpo = `${abas}<form id="f-acesso" data-tipo="cadastro" class="cartao form">
+        <label class="campo">Nome<input name="nome" autocomplete="name" required></label>
+        <label class="campo">E-mail<input name="email" type="email" autocomplete="email" autocapitalize="none" required></label>
+        <label class="campo">Senha <small>mínimo 6 caracteres</small><input name="senha" type="password" minlength="6" autocomplete="new-password" required></label>
+        <button class="btn primario largo" type="submit">Enviar cadastro</button>
+        <p class="dica">Depois de enviar, o administrador precisa aprovar o seu cadastro.</p>
+        ${google}
+      </form>`;
+  } else {
+    corpo = `${abas}<form id="f-acesso" data-tipo="entrar" class="cartao form">
+        <label class="campo">E-mail<input name="email" type="email" autocomplete="email" autocapitalize="none" required></label>
+        <label class="campo">Senha<input name="senha" type="password" autocomplete="current-password" required></label>
+        <button class="btn primario largo" type="submit">Entrar</button>
+        ${online ? '<button class="btn-link" type="button" data-act="esqueci">Esqueci minha senha</button>' : ''}
+        ${google}
+      </form>`;
+  }
+
+  return {
+    form: 'foco',
+    html: `<div class="portao">${logoTopo}${corpo}
+      ${aba !== 'adm' ? '<button class="btn-link adm-link" data-act="portal" data-v="adm">Acesso do Adm</button>' : ''}
+      ${avisoDemo()}</div>`,
+    depois() {
+      $('#f-acesso').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const f = Object.fromEntries(new FormData(form));
+        const botao = form.querySelector('[type=submit]');
+        botao.disabled = true;
+        document.activeElement?.blur();
+        try {
+          if (form.dataset.tipo === 'adm') await api.loginAdm(f.usuario, f.senha);
+          else if (form.dataset.tipo === 'cadastro') await api.cadastrar(f.nome, f.email, f.senha);
+          else await api.entrar(f.email, f.senha);
+          ui.portal = 'entrar';
+          render(true);
+        } catch (err) {
+          toast(err.message || 'Não foi possível entrar.');
+          if (form.senha) form.senha.value = '';
+          botao.disabled = false;
+        }
+      });
+    },
+  };
+}
+
 // ---------------- conta / administração ----------------
 function telaConta() {
   const u = state.user;
-  const demo = state.modo === 'demo';
+  const pend = state.usuarios.filter((x) => x.status === 'pendente').length;
   return {
     html: `
     <h2 class="secao">Conta</h2>
     <div class="cartao">
-      ${demo ? `<p><b>Modo demonstração.</b> Os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>
-        ${state.isAdmin ? '<p>Você está como <span class="selo">Adm</span>.</p><button class="btn" data-act="logout">Sair do Adm</button>' : ''}`
-      : u ? `<div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)}${state.isAdmin ? ' · <span class="selo">Adm</span>' : ''}</small></div></div>
-        <button class="btn" data-act="logout">Sair</button>`
-      : `<p>Entre para salvar seus favoritos e grifos em qualquer aparelho.</p><button class="btn primario" data-act="login">Entrar com Google</button>`}
+      <div class="usuario">${u.foto ? `<img src="${esc(u.foto)}" alt="">` : ''}<div><b>${esc(u.nome)}</b><small>${esc(u.email)}${state.isAdmin ? ' · <span class="selo">Adm</span>' : ''}</small></div></div>
+      <button class="btn" data-act="logout">Sair</button>
+      ${state.modo === 'demo' ? '<p class="dica">Modo demonstração: os dados ficam salvos só neste aparelho. Para o grupo todo usar junto, o app precisa ser ligado ao Firebase (veja o SETUP.md).</p>' : ''}
     </div>
-
-    ${state.isAdmin ? '' : `
-    <h3 class="secao">Acesso do Adm</h3>
-    <form id="form-adm" class="cartao form">
-      <label class="campo">Usuário<input name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-      <label class="campo">Senha<input name="senha" type="password" autocomplete="current-password" required></label>
-      ${!demo && u ? '<p class="dica">Ao entrar como Adm, sua conta Google sai deste aparelho.</p>' : ''}
-      <div class="botoes"><button class="btn primario" type="submit">Entrar como Adm</button></div>
-    </form>`}
 
     <h3 class="secao">Leitura</h3>
     <div class="cartao">
@@ -463,28 +549,40 @@ function telaConta() {
     ${state.isAdmin ? `
     <h3 class="secao">Administração</h3>
     <div class="cartao botoes col">
-      <a class="btn primario" href="#/editar/novo">+ Adicionar hino novo</a>
+      <a class="btn ${pend ? 'primario' : ''}" href="#/cadastros">Cadastros${pend ? ` · ${pend} aguardando aprovação` : ''}</a>
+      <a class="btn" href="#/editar/novo">+ Adicionar hino novo</a>
       <a class="btn" href="#/ordem">Organizar numeração</a>
       <a class="btn" href="#/agenda">Marcar hinos dos cultos</a>
       ${!state.hinos.length ? '<button class="btn" data-act="importar">Importar repertório inicial (41 hinos)</button>' : ''}
     </div>` : ''}
     <p class="rodape">Hinário Conectados em Cristo · ${state.hinos.length} hinos</p>`,
-    form: 'foco',
-    depois() {
-      $('#form-adm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const f = Object.fromEntries(new FormData(e.target));
-        document.activeElement?.blur();
-        try {
-          await api.loginAdm(f.usuario, f.senha);
-          toast('Você entrou como Adm.');
-          render(true);
-        } catch (err) {
-          toast(err.message === 'bloqueado' ? 'Muitas tentativas. Espere alguns minutos.' : 'Usuário ou senha incorretos.');
-          e.target.senha.value = '';
-        }
-      });
-    },
+  };
+}
+
+function telaCadastros() {
+  if (!state.isAdmin) return { html: '<p class="vazio">Só o Adm pode ver os cadastros.</p>' };
+  const aba = ui.abaCadastros || 'pendente';
+  const grupos = { pendente: 'Aguardando', aprovado: 'Aprovados', recusado: 'Recusados' };
+  const lista = state.usuarios.filter((u) => u.status === aba).sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+  const quando = (t) => (t ? new Date(t).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : '');
+  const botoes = (u) => ({
+    pendente: `<button class="btn pequeno primario" data-act="status" data-uid="${u.uid}" data-v="aprovado">Aprovar</button>
+               <button class="btn pequeno perigo" data-act="status" data-uid="${u.uid}" data-v="recusado">Recusar</button>`,
+    aprovado: `<button class="btn pequeno perigo" data-act="status" data-uid="${u.uid}" data-v="recusado" data-confirma="1">Remover acesso</button>`,
+    recusado: `<button class="btn pequeno" data-act="status" data-uid="${u.uid}" data-v="aprovado">Aprovar</button>`,
+  }[u.status]);
+  return {
+    html: `
+    <div class="hino-topo"><a href="#/conta" class="voltar">←</a><div class="titulo"><div><h2>Cadastros</h2><small>Aprove quem pode usar o hinário</small></div></div></div>
+    <div class="filtros">${Object.entries(grupos).map(([k, n]) => {
+      const q = state.usuarios.filter((u) => u.status === k).length;
+      return `<button class="chip ${aba === k ? 'on' : ''}" data-act="abaCadastros" data-v="${k}">${n} (${q})</button>`;
+    }).join('')}</div>
+    <div class="lista">${lista.length ? lista.map((u) => `<div class="linha cadastro">
+        <span class="num avatar">${esc((u.nome || '?').trim()[0].toUpperCase())}</span>
+        <span class="info"><b>${esc(u.nome)}</b><small>${esc(u.email)}${u.criadoEm ? ` · ${quando(u.criadoEm)}` : ''}</small></span>
+        <span class="acoes">${botoes(u)}</span></div>`).join('')
+      : `<p class="vazio">${aba === 'pendente' ? 'Nenhum cadastro aguardando aprovação.' : 'Ninguém aqui.'}</p>`}</div>`,
   };
 }
 
@@ -640,8 +738,21 @@ const acoes = {
     toast('Numeração organizada.');
   },
   async importar() { await api.importarRepertorio(); toast('Repertório importado.'); },
-  async login() { try { await api.login(); } catch (e) { toast('Não foi possível entrar.'); console.error(e); } },
-  async logout() { await api.logout(); },
+  async login() { acoes.google(); },
+  async google() { try { await api.entrarGoogle(); } catch (e) { toast(e.message || 'Não foi possível entrar.'); } },
+  async esqueci() {
+    const email = $('#f-acesso [name=email]')?.value.trim();
+    if (!email) { toast('Digite seu e-mail primeiro.'); return; }
+    try { await api.esqueciSenha(email); toast('Enviamos um link para redefinir a senha.'); } catch (e) { toast(e.message); }
+  },
+  async logout() { fecharPlayer(); await api.logout(); location.hash = '#/'; render(true); },
+  portal(el) { ui.portal = el.dataset.v; render(true); },
+  abaCadastros(el) { ui.abaCadastros = el.dataset.v; render(true); },
+  async status(el) {
+    if (el.dataset.confirma && !confirm('Remover o acesso desta pessoa ao hinário?')) return;
+    await api.definirStatus(el.dataset.uid, el.dataset.v);
+    toast(el.dataset.v === 'aprovado' ? 'Cadastro aprovado.' : 'Acesso recusado.');
+  },
 };
 
 document.addEventListener('click', (e) => {

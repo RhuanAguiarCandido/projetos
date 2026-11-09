@@ -5,13 +5,28 @@ service cloud.firestore {
     function adm() {
       return logado() && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
     }
+    // cadastro aprovado pelo Adm
+    function aprovado() {
+      return logado()
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.status == 'aprovado';
+    }
 
-    // Hinos e agenda: todos leem, só o Adm altera
-    match /hinos/{id}   { allow read: if true; allow write: if adm(); }
-    match /cultos/{dia} { allow read: if true; allow write: if adm(); }
+    // Hinos e agenda: só aprovados (e o Adm) leem; só o Adm altera
+    match /hinos/{id}   { allow read: if aprovado() || adm(); allow write: if adm(); }
+    match /cultos/{dia} { allow read: if aprovado() || adm(); allow write: if adm(); }
 
-    // Favoritos e grifos pessoais: cada um só mexe no seu
-    match /usuarios/{uid} { allow read, write: if logado() && request.auth.uid == uid; }
+    // Cadastros
+    match /usuarios/{uid} {
+      function dono() { return logado() && request.auth.uid == uid; }
+      allow read: if dono() || adm();
+      // ao se cadastrar, a pessoa só pode criar o próprio registro como "pendente"
+      allow create: if (dono() && request.resource.data.status == 'pendente'
+                        && request.resource.data.get('adm', false) == false) || adm();
+      // a pessoa pode salvar favoritos e grifos, mas não mudar o próprio status
+      allow update: if (dono() && request.resource.data.status == resource.data.status
+                        && request.resource.data.get('adm', false) == resource.data.get('adm', false)) || adm();
+      allow delete: if adm();
+    }
 
     // Lista de administradores (documento com o e-mail como ID): cada um só consulta o próprio
     match /admins/{email} {

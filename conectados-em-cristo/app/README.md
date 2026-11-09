@@ -5,6 +5,15 @@ instalado na tela inicial ("Adicionar à tela de início").
 
 ## O que ele faz
 
+**Acesso com aprovação**
+- Quem quer usar abre o app e faz o **cadastro** (nome, e-mail e senha) ou
+  entra com Google.
+- O cadastro fica **aguardando aprovação**; até lá a pessoa só vê essa tela.
+- O Adm vê os pedidos em **Conta → Cadastros** (com aviso na tela inicial e um
+  número no ícone *Conta*) e toca em **Aprovar** ou **Recusar**. Assim que é
+  aprovado, o hinário abre sozinho no celular da pessoa.
+- O Adm também pode **remover o acesso** de quem já foi aprovado.
+
 **Para todos**
 - Lista e busca dos hinos (nome, número, cantor ou trecho da letra)
 - Letra na tela, com **A− / A+** para o tamanho da fonte (fica salvo)
@@ -18,7 +27,8 @@ instalado na tela inicial ("Adicionar à tela de início").
 - **Tela sempre acesa** enquanto a letra está aberta
 - **Funciona sem internet** depois de aberto uma vez (o áudio precisa de internet)
 
-**Para o Adm** (entra em *Conta → Acesso do Adm* com usuário e senha)
+**Para o Adm** (entra pelo link *Acesso do Adm*, na tela de entrada, com usuário e senha)
+- Aprovar, recusar e remover cadastros
 - Adicionar, editar e excluir hinos (letra, cantor, links do YouTube)
 - Organizar a numeração (▲ ▼ e "Renumerar 1, 2, 3…")
 - **Grifo padrão** que todos veem (o grifo pessoal fica por cima e pode ser
@@ -36,7 +46,8 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-Para as funções de Adm: **Conta → Acesso do Adm**, com o usuário e a senha do Adm.
+Na tela de entrada, faça um cadastro de teste; depois clique em **Acesso do Adm**
+(usuário e senha do Adm) para aprovar o cadastro em **Conta → Cadastros**.
 
 Para o grupo todo usar junto (login com Google, dados compartilhados), siga o
 [SETUP.md](SETUP.md).

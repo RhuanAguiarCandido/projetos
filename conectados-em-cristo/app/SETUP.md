@@ -5,8 +5,9 @@ Leva uns 20 minutos e é gratuito para o tamanho do grupo (plano Spark do Fireba
 ## 1. Criar o projeto no Firebase
 1. Acesse <https://console.firebase.google.com> e clique em **Adicionar projeto**
    (ex.: `conectados-em-cristo`). O Google Analytics pode ficar desligado.
-2. Em **Criação → Authentication → Começar**, ative os provedores **Google**
-   (para os jovens) e **E-mail/senha** (para o Adm).
+2. Em **Criação → Authentication → Começar**, ative os provedores
+   **E-mail/senha** (cadastro dos jovens e acesso do Adm) e **Google**
+   (opcional: "Continuar com Google").
 3. Em **Criação → Firestore Database → Criar banco de dados**, escolha a região
    `southamerica-east1 (São Paulo)` e o modo **produção**.
 4. Na aba **Regras** do Firestore, apague o conteúdo, cole o arquivo
@@ -48,7 +49,8 @@ Depois de publicar, em **Authentication → Configurações → Domínios autori
 confira se o endereço do site está na lista.
 
 ## 5. Primeiro acesso
-1. Abra o app e vá em **Conta → Acesso do Adm** (usuário `admin`).
-2. Clique em **Importar repertório inicial (41 hinos)**.
-3. Mande o link para os jovens. No celular: menu do navegador →
-   **Adicionar à tela de início**.
+1. Abra o app e toque em **Acesso do Adm** (usuário `admin`).
+2. Em **Conta**, clique em **Importar repertório inicial (41 hinos)**.
+3. Mande o link para os jovens. Cada um faz o cadastro; os pedidos aparecem em
+   **Conta → Cadastros** para você aprovar. No celular, dá para instalar pelo
+   menu do navegador → **Adicionar à tela de início**.
